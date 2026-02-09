@@ -5,6 +5,7 @@ import { HousingStatusScreen } from './screens/HousingStatusScreen';
 import { LocationScreen } from './screens/LocationScreen';
 import { HousedLocationScreen } from './screens/HousedLocationScreen';
 import { HouseTypeScreen } from './screens/HouseTypeScreen';
+import { RoommatesNeededScreen } from './screens/RoommatesNeededScreen';
 import { SignUpScreen } from './screens/SignUpScreen';
 import { NameScreen } from './screens/NameScreen';
 import { ProfilePhotoScreen } from './screens/ProfilePhotoScreen';
@@ -14,14 +15,18 @@ import { GenderScreen } from './screens/GenderScreen';
 import { DesiredHouseTypeScreen } from './screens/DesiredHouseTypeScreen';
 import { BudgetScreen } from './screens/BudgetScreen';
 import { TimelineScreen } from './screens/TimelineScreen';
+import { ContactPreferenceScreen } from './screens/ContactPreferenceScreen';
 import { SwipeScreen } from './screens/SwipeScreen';
+import { ProfileScreen } from './screens/ProfileScreen';
+import { NotificationsScreen } from './screens/NotificationsScreen';
 
-type Screen = 'welcome' | 'userType' | 'housingStatus' | 'location' | 'housedLocation' | 'houseType' | 'signUp' | 'name' | 'profilePhoto' | 'avatar' | 'birthday' | 'gender' | 'desiredHouseType' | 'budget' | 'timeline' | 'swipe';
+type Screen = 'welcome' | 'userType' | 'housingStatus' | 'location' | 'housedLocation' | 'houseType' | 'roommatesNeeded' | 'signUp' | 'name' | 'profilePhoto' | 'avatar' | 'birthday' | 'gender' | 'desiredHouseType' | 'budget' | 'timeline' | 'contactPreference' | 'swipe' | 'profile' | 'notifications';
 
 function App() {
   const [currentScreen, setCurrentScreen] = useState<Screen>('welcome');
   const [housingStatus, setHousingStatus] = useState<'have-place' | 'looking' | null>(null);
   const [hasPhoto, setHasPhoto] = useState(false);
+  const [hasSeenOnboarding, setHasSeenOnboarding] = useState(false);
 
   return (
     <>
@@ -78,9 +83,18 @@ function App() {
         <HouseTypeScreen
           onSelect={(houseType) => {
             console.log('House type:', houseType);
-            setCurrentScreen('signUp');
+            setCurrentScreen('roommatesNeeded');
           }}
           onBack={() => setCurrentScreen('housedLocation')}
+        />
+      )}
+      {currentScreen === 'roommatesNeeded' && (
+        <RoommatesNeededScreen
+          onNext={(numberOfRoommates) => {
+            console.log('Roommates needed:', numberOfRoommates);
+            setCurrentScreen('signUp');
+          }}
+          onBack={() => setCurrentScreen('houseType')}
         />
       )}
       {currentScreen === 'signUp' && (
@@ -95,7 +109,7 @@ function App() {
           }}
           onBack={() => {
             if (housingStatus === 'have-place') {
-              setCurrentScreen('houseType');
+              setCurrentScreen('roommatesNeeded');
             } else {
               setCurrentScreen('location');
             }
@@ -145,7 +159,11 @@ function App() {
         <GenderScreen
           onNext={(gender) => {
             console.log('Gender:', gender);
-            setCurrentScreen('desiredHouseType');
+            if (housingStatus === 'have-place') {
+              setCurrentScreen('contactPreference');
+            } else {
+              setCurrentScreen('desiredHouseType');
+            }
           }}
           onBack={() => setCurrentScreen('birthday')}
         />
@@ -172,17 +190,43 @@ function App() {
         <TimelineScreen
           onNext={(startDate, duration) => {
             console.log('Timeline:', startDate, duration);
-            setCurrentScreen('swipe');
+            setCurrentScreen('contactPreference');
           }}
           onBack={() => setCurrentScreen('budget')}
         />
       )}
+      {currentScreen === 'contactPreference' && (
+        <ContactPreferenceScreen
+          onNext={(preferences) => {
+            console.log('Contact preferences:', preferences);
+            setCurrentScreen('swipe');
+          }}
+          onBack={() => {
+            if (housingStatus === 'have-place') {
+              setCurrentScreen('gender');
+            } else {
+              setCurrentScreen('timeline');
+            }
+          }}
+        />
+      )}
       {currentScreen === 'swipe' && (
         <SwipeScreen
-          profiles={[]}
-          onSwipe={(profileId, direction) => {
-            console.log('Swiped:', profileId, direction);
-          }}
+          housingStatus={housingStatus}
+          onNavigateToProfile={() => setCurrentScreen('profile')}
+          onNavigateToNotifications={() => setCurrentScreen('notifications')}
+          hasSeenOnboarding={hasSeenOnboarding}
+          onOnboardingComplete={() => setHasSeenOnboarding(true)}
+        />
+      )}
+      {currentScreen === 'profile' && (
+        <ProfileScreen
+          onBack={() => setCurrentScreen('swipe')}
+        />
+      )}
+      {currentScreen === 'notifications' && (
+        <NotificationsScreen
+          onBack={() => setCurrentScreen('swipe')}
         />
       )}
     </>
