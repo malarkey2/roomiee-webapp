@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { Button } from '../components/Button';
+import { EditPreferencesScreen } from './EditPreferencesScreen';
+import type { DetailedPreferences } from './EditPreferencesScreen';
 
 interface ProfileScreenProps {
   onBack: () => void;
@@ -33,6 +35,7 @@ const MOCK_USER_PROFILE = {
 export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onBack }) => {
   const [profile, setProfile] = useState(MOCK_USER_PROFILE);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [showEditPreferences, setShowEditPreferences] = useState(false);
   const [editField, setEditField] = useState<string | null>(null);
   const [editValue, setEditValue] = useState<string>('');
 
@@ -40,6 +43,17 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onBack }) => {
     setEditField(field);
     setEditValue(String(currentValue));
     setIsEditModalOpen(true);
+  };
+
+  const handleEditLifestyle = () => {
+    setShowEditPreferences(true);
+  };
+
+  const handleSavePreferences = (preferences: DetailedPreferences) => {
+    console.log('Saved preferences:', preferences);
+    // Update profile with new preferences
+    // You can map the preferences back to profile fields here
+    setShowEditPreferences(false);
   };
 
   const handleSave = () => {
@@ -61,6 +75,16 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onBack }) => {
     day: 'numeric', 
     year: 'numeric' 
   });
+
+  // If editing preferences, show that screen
+  if (showEditPreferences) {
+    return (
+      <EditPreferencesScreen
+        onSave={handleSavePreferences}
+        onBack={() => setShowEditPreferences(false)}
+      />
+    );
+  }
 
   return (
     <>
@@ -195,7 +219,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onBack }) => {
                     <p className="font-medium">{profile.diet}</p>
                   </div>
                   <button 
-                    onClick={() => handleEdit('diet', profile.diet)}
+                    onClick={handleEditLifestyle}
                     className="text-blue-600 text-sm"
                   >
                     ✏️
@@ -208,7 +232,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onBack }) => {
                     <p className="font-medium">{profile.pets}</p>
                   </div>
                   <button 
-                    onClick={() => handleEdit('pets', profile.pets)}
+                    onClick={handleEditLifestyle}
                     className="text-blue-600 text-sm"
                   >
                     ✏️
@@ -221,7 +245,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onBack }) => {
                     <p className="font-medium">{profile.sleepSchedule}</p>
                   </div>
                   <button 
-                    onClick={() => handleEdit('sleepSchedule', profile.sleepSchedule)}
+                    onClick={handleEditLifestyle}
                     className="text-blue-600 text-sm"
                   >
                     ✏️
@@ -234,7 +258,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onBack }) => {
                     <p className="font-medium">{profile.smoking}</p>
                   </div>
                   <button 
-                    onClick={() => handleEdit('smoking', profile.smoking)}
+                    onClick={handleEditLifestyle}
                     className="text-blue-600 text-sm"
                   >
                     ✏️
@@ -314,7 +338,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onBack }) => {
         </div>
       </div>
 
-      {/* Edit Modal */}
+      {/* Edit Modal (for non-lifestyle fields) */}
       {isEditModalOpen && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-6 z-50">
           <div className="bg-white rounded-2xl p-6 max-w-md w-full">
