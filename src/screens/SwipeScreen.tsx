@@ -279,10 +279,9 @@ export const SwipeScreen: React.FC<SwipeScreenProps> = ({
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
-                        <span className="text-lg">🏠</span>
                         <span className="font-semibold text-sm">Housed | {currentProfile.houseType}</span>
                       </div>
-                      <p className="text-xs text-gray-600 ml-7">
+                      <p className="text-xs text-gray-600">
                         {currentProfile.currentOccupants}/{currentProfile.totalRooms} occupied
                       </p>
                     </div>
@@ -310,10 +309,9 @@ export const SwipeScreen: React.FC<SwipeScreenProps> = ({
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
-                        <span className="text-lg">🔍</span>
                         <span className="font-semibold text-sm">Looking for a place</span>
                       </div>
-                      <p className="text-xs text-gray-600 ml-7">
+                      <p className="text-xs text-gray-600">
                         Budget: ${currentProfile.budget}/month
                       </p>
                     </div>
@@ -377,7 +375,7 @@ export const SwipeScreen: React.FC<SwipeScreenProps> = ({
               onClick={() => handleSwipe('right')}
               className="flex-1 py-4 bg-black text-white rounded-full font-semibold hover:bg-gray-800 transition-all active:scale-95 flex items-center justify-center gap-2"
             >
-              <span className="text-2xl">❤️</span>
+              <span className="text-2xl">✓</span>
               Match
             </button>
           </div>
@@ -388,15 +386,17 @@ export const SwipeScreen: React.FC<SwipeScreenProps> = ({
           <div className="max-w-md mx-auto flex justify-around">
             <button 
               onClick={onNavigateToProfile}
-              className="p-3 text-gray-600 hover:text-black transition-colors"
+              className="flex flex-col items-center gap-1 p-3 text-gray-600 hover:text-black transition-colors"
             >
               <span className="text-2xl">👤</span>
+              <span className="text-xs font-medium">Profile</span>
             </button>
             <button 
               onClick={onNavigateToNotifications}
-              className="p-3 text-gray-600 hover:text-black transition-colors"
+              className="flex flex-col items-center gap-1 p-3 text-gray-600 hover:text-black transition-colors"
             >
               <span className="text-2xl">🔔</span>
+              <span className="text-xs font-medium">Matches</span>
             </button>
           </div>
         </div>

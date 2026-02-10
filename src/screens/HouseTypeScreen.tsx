@@ -38,9 +38,9 @@ export const HouseTypeScreen: React.FC<HouseTypeScreenProps> = ({ onSelect, onBa
               onClick={() => onSelect(type.value)}
               className="w-full bg-gray-100 rounded-xl p-5 hover:bg-gray-200 transition-all flex items-center gap-4"
             >
-              <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center flex-shrink-0">
+              {/* <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center flex-shrink-0">
                 <span className="text-2xl">{type.emoji}</span>
-              </div>
+              </div> */}
               <span className="text-lg font-medium">{type.label}</span>
             </button>
           ))}

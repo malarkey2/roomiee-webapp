@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from './contexts/AuthContext';
+import { LandingPage } from './screens/LandingPage';
 import { WelcomeScreen } from './screens/WelcomeScreen';
 import { LoginScreen } from './screens/LoginScreen';
 import { UserTypeScreen } from './screens/UserTypeScreen';
@@ -24,15 +25,18 @@ import { ProfileScreen } from './screens/ProfileScreen';
 import { NotificationsScreen } from './screens/NotificationsScreen';
 import { updateProfile } from './lib/profileHelpers';
 
-type Screen = 'welcome' | 'login' | 'userType' | 'housingStatus' | 'location' | 'housedLocation' | 'houseType' | 'rentAndOccupants' | 'roommatesNeeded' | 'signUp' | 'name' | 'profilePhoto' | 'avatar' | 'birthday' | 'gender' | 'desiredHouseType' | 'budget' | 'timeline' | 'contactPreference' | 'swipe' | 'profile' | 'notifications';
+type Screen = 'landing' | 'welcome' | 'login' | 'userType' | 'housingStatus' | 'location' | 'housedLocation' | 'houseType' | 'rentAndOccupants' | 'roommatesNeeded' | 'signUp' | 'name' | 'profilePhoto' | 'avatar' | 'birthday' | 'gender' | 'desiredHouseType' | 'budget' | 'timeline' | 'contactPreference' | 'swipe' | 'profile' | 'notifications';
 
 const PRESIGNUP_STORAGE_KEY = 'roomie_presignup_data';
+const ONBOARDING_SEEN_KEY = 'roomie_onboarding_seen';
 
 function App() {
   const { user, profile, loading, refreshProfile } = useAuth();
-  const [currentScreen, setCurrentScreen] = useState<Screen>('welcome');
+  const [currentScreen, setCurrentScreen] = useState<Screen>('landing');
   const [housingStatus, setHousingStatus] = useState<'have-place' | 'looking' | null>(null);
-  const [hasSeenOnboarding, setHasSeenOnboarding] = useState(false);
+  const [hasSeenOnboarding, setHasSeenOnboarding] = useState(() => {
+    return localStorage.getItem(ONBOARDING_SEEN_KEY) === 'true';
+  });
   const [preSignupDataSaved, setPreSignupDataSaved] = useState(false);
 
   // Load pre-signup data from localStorage
@@ -52,6 +56,12 @@ function App() {
   // Clear pre-signup data
   const clearPreSignupData = () => {
     localStorage.removeItem(PRESIGNUP_STORAGE_KEY);
+  };
+
+  // Mark onboarding as seen
+  const markOnboardingSeen = () => {
+    localStorage.setItem(ONBOARDING_SEEN_KEY, 'true');
+    setHasSeenOnboarding(true);
   };
 
   // STAGE 1 → STAGE 2: After signup, save pre-signup data to database
@@ -85,7 +95,6 @@ function App() {
     if (user && profile) {
       if (profile.onboarding_completed) {
         setCurrentScreen('swipe');
-        setHasSeenOnboarding(true);
       } else {
         const step = determineOnboardingStep(profile);
         setCurrentScreen(step);
@@ -128,6 +137,11 @@ function App() {
 
   return (
     <>
+      {currentScreen === 'landing' && (
+        <LandingPage
+          onGetStarted={() => setCurrentScreen('welcome')}
+        />
+      )}
       {currentScreen === 'welcome' && (
         <WelcomeScreen
           onNewUser={() => setCurrentScreen('userType')}
@@ -307,7 +321,7 @@ function App() {
           onNavigateToProfile={() => setCurrentScreen('profile')}
           onNavigateToNotifications={() => setCurrentScreen('notifications')}
           hasSeenOnboarding={hasSeenOnboarding}
-          onOnboardingComplete={() => setHasSeenOnboarding(true)}
+          onOnboardingComplete={markOnboardingSeen}
         />
       )}
       {currentScreen === 'profile' && (

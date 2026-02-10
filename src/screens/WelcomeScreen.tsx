@@ -15,7 +15,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onNewUser, onRetur
           <span className="text-2xl">R</span>
         </div>
         
-        <h1 className="text-4xl font-bold text-center mb-3 text-black">Roomie</h1>
+        <h1 className="text-4xl font-bold text-center mb-3 text-black">Roomiee</h1>
         <p className="text-center text-gray-600 mb-12">
           Find your perfect roommate match
         </p>

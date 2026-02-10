@@ -122,13 +122,7 @@ export const ProfilePhotoScreen: React.FC<ProfilePhotoScreenProps> = ({
             {loading ? 'Saving...' : 'Continue with Photo'}
           </Button>
           
-          <button
-            onClick={handleSkip}
-            className="w-full px-6 py-3 text-gray-600 hover:text-black transition-colors"
-            disabled={loading}
-          >
-            Skip for now
-          </button>
+          
         </div>
       </div>
     </div>

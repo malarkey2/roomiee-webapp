@@ -41,7 +41,7 @@ export const HousingStatusScreen: React.FC<HousingStatusScreenProps> = ({ onSele
             }`}
           >
             <div className="flex items-center gap-4">
-              <div className="text-4xl">🏠</div>
+              {/* <div className="text-4xl">🏠</div> */}
               <div>
                 <h3 className="text-lg font-semibold mb-1">I have a place</h3>
                 <p className={`text-sm ${selected === 'have-place' ? 'text-gray-300' : 'text-gray-600'}`}>
@@ -60,7 +60,7 @@ export const HousingStatusScreen: React.FC<HousingStatusScreenProps> = ({ onSele
             }`}
           >
             <div className="flex items-center gap-4">
-              <div className="text-4xl">🔍</div>
+              {/* <div className="text-4xl">🔍</div> */}
               <div>
                 <h3 className="text-lg font-semibold mb-1">I'm looking for a place</h3>
                 <p className={`text-sm ${selected === 'looking' ? 'text-gray-300' : 'text-gray-600'}`}>
