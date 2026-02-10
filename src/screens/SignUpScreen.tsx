@@ -13,7 +13,7 @@ const PRESIGNUP_STORAGE_KEY = 'roomie_presignup_data';
 
 export const SignUpScreen: React.FC<SignUpScreenProps> = ({ 
   onEmailSignUp, 
-  onGoogleSignUp, 
+  // onGoogleSignUp, 
   onBack,
   onGoToLogin 
 }) => {
