@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { EditPreferencesScreen } from './EditPreferencesScreen';
 import { supabase } from '../lib/supabase';
+import { useAuth } from '../contexts/AuthContext';
 
 interface Profile {
   id: string;
@@ -39,6 +40,7 @@ export const SwipeScreen: React.FC<SwipeScreenProps> = ({
   hasSeenOnboarding = false,
   onOnboardingComplete
 }) => {
+  const { signOut } = useAuth();
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -119,6 +121,13 @@ export const SwipeScreen: React.FC<SwipeScreenProps> = ({
     }
   };
 
+  const handleLogout = async () => {
+    if (confirm('Are you sure you want to log out?')) {
+      await signOut();
+      window.location.reload();
+    }
+  };
+
   const onboardingSteps = [
     {
       target: 'housing-info',
@@ -157,7 +166,7 @@ export const SwipeScreen: React.FC<SwipeScreenProps> = ({
       const timer = setTimeout(updateHighlight, 100);
       return () => clearTimeout(timer);
     }
-  }, [onboardingStep, showOnboarding, currentOnboardingStep?.target]); // FIXED: Only depend on target string
+  }, [onboardingStep, showOnboarding, currentOnboardingStep?.target]);
 
   const handleNextOnboarding = () => {
     if (onboardingStep < onboardingSteps.length - 1) {
@@ -229,9 +238,15 @@ export const SwipeScreen: React.FC<SwipeScreenProps> = ({
     <>
       <div className="h-screen bg-white flex flex-col relative overflow-hidden">
         {/* Header - Fixed */}
-        <div className="p-6 flex-shrink-0">
+        <div className="p-6 flex-shrink-0 flex items-center justify-between">
           <button className="text-gray-600 hover:text-black transition-colors">
             ← Back
+          </button>
+          <button 
+            onClick={handleLogout}
+            className="px-4 py-2 text-sm text-gray-600 hover:text-black border border-gray-300 rounded-lg hover:border-black transition-all"
+          >
+            Logout
           </button>
         </div>
 

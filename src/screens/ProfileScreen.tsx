@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Button } from '../components/Button';
 import { EditPreferencesScreen } from './EditPreferencesScreen';
 import { useAuth } from '../contexts/AuthContext';
@@ -265,135 +265,180 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onBack }) => {
               <h2 className="text-lg font-semibold mb-3">Lifestyle</h2>
               
               <div className="space-y-3">
-                {profile.diet && (
-                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
-                    <div>
-                      <p className="text-xs text-gray-600">Diet</p>
-                      <p className="font-medium">{profile.diet}</p>
-                    </div>
-                    <button 
-                      onClick={handleEditLifestyle}
-                      className="text-blue-600 text-sm"
-                    >
-                      ✏️
-                    </button>
-                  </div>
-                )}
-
-                {profile.pets && (
-                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
-                    <div>
-                      <p className="text-xs text-gray-600">Pets</p>
-                      <p className="font-medium">{profile.pets}</p>
-                    </div>
-                    <button 
-                      onClick={handleEditLifestyle}
-                      className="text-blue-600 text-sm"
-                    >
-                      ✏️
-                    </button>
-                  </div>
-                )}
-
-                {profile.sleep_schedule && (
-                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
-                    <div>
-                      <p className="text-xs text-gray-600">Sleep Schedule</p>
-                      <p className="font-medium">{profile.sleep_schedule}</p>
-                    </div>
-                    <button 
-                      onClick={handleEditLifestyle}
-                      className="text-blue-600 text-sm"
-                    >
-                      ✏️
-                    </button>
-                  </div>
-                )}
-
-                {profile.smoking && (
-                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
-                    <div>
-                      <p className="text-xs text-gray-600">Smoking</p>
-                      <p className="font-medium">{profile.smoking}</p>
-                    </div>
-                    <button 
-                      onClick={handleEditLifestyle}
-                      className="text-blue-600 text-sm"
-                    >
-                      ✏️
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Background */}
-            {profile.background && (
-              <div className="mb-6">
-                <h2 className="text-lg font-semibold mb-3">My Background</h2>
-                <div className="flex items-start justify-between p-3 bg-gray-50 rounded-xl">
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
                   <div className="flex-1">
-                    <p className="text-gray-700">{profile.background}</p>
+                    <p className="text-xs text-gray-600">Diet</p>
+                    <p className={`font-medium ${!profile.diet ? 'text-gray-400' : ''}`}>
+                      {profile.diet || 'Add diet preference...'}
+                    </p>
                   </div>
                   <button 
-                    onClick={() => handleEdit('background', profile.background)}
-                    className="text-blue-600 text-sm ml-3"
+                    onClick={handleEditLifestyle}
+                    className="text-blue-600 text-sm"
+                  >
+                    ✏️
+                  </button>
+                </div>
+
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+                  <div className="flex-1">
+                    <p className="text-xs text-gray-600">Pets</p>
+                    <p className={`font-medium ${!profile.pets ? 'text-gray-400' : ''}`}>
+                      {profile.pets || 'Add pet preference...'}
+                    </p>
+                  </div>
+                  <button 
+                    onClick={handleEditLifestyle}
+                    className="text-blue-600 text-sm"
+                  >
+                    ✏️
+                  </button>
+                </div>
+
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+                  <div className="flex-1">
+                    <p className="text-xs text-gray-600">Sleep Schedule</p>
+                    <p className={`font-medium ${!profile.sleep_schedule ? 'text-gray-400' : ''}`}>
+                      {profile.sleep_schedule || 'Add sleep schedule...'}
+                    </p>
+                  </div>
+                  <button 
+                    onClick={handleEditLifestyle}
+                    className="text-blue-600 text-sm"
+                  >
+                    ✏️
+                  </button>
+                </div>
+
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+                  <div className="flex-1">
+                    <p className="text-xs text-gray-600">Smoking</p>
+                    <p className={`font-medium ${!profile.smoking ? 'text-gray-400' : ''}`}>
+                      {profile.smoking || 'Add smoking preference...'}
+                    </p>
+                  </div>
+                  <button 
+                    onClick={handleEditLifestyle}
+                    className="text-blue-600 text-sm"
+                  >
+                    ✏️
+                  </button>
+                </div>
+
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+                  <div className="flex-1">
+                    <p className="text-xs text-gray-600">Religion</p>
+                    <p className={`font-medium ${!profile.religion ? 'text-gray-400' : ''}`}>
+                      {profile.religion || 'Add religion...'}
+                    </p>
+                  </div>
+                  <button 
+                    onClick={handleEditLifestyle}
+                    className="text-blue-600 text-sm"
+                  >
+                    ✏️
+                  </button>
+                </div>
+
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+                  <div className="flex-1">
+                    <p className="text-xs text-gray-600">Drinking</p>
+                    <p className={`font-medium ${!profile.drinking ? 'text-gray-400' : ''}`}>
+                      {profile.drinking || 'Add drinking preference...'}
+                    </p>
+                  </div>
+                  <button 
+                    onClick={handleEditLifestyle}
+                    className="text-blue-600 text-sm"
                   >
                     ✏️
                   </button>
                 </div>
               </div>
-            )}
+            </div>
+
+            {/* Background */}
+            <div className="mb-6">
+              <h2 className="text-lg font-semibold mb-3">My Background</h2>
+              <div className="flex items-start justify-between p-3 bg-gray-50 rounded-xl">
+                <div className="flex-1">
+                  <p className={`${!profile.background ? 'text-gray-400' : 'text-gray-700'}`}>
+                    {profile.background || 'Add a bio to tell potential roommates about yourself...'}
+                  </p>
+                </div>
+                <button 
+                  onClick={() => handleEdit('background', profile.background)}
+                  className="text-blue-600 text-sm ml-3"
+                >
+                  ✏️
+                </button>
+              </div>
+            </div>
 
             {/* Contact Preferences */}
             <div className="mb-6">
               <h2 className="text-lg font-semibold mb-3">Contact Info (Shared with Matches)</h2>
               
               <div className="space-y-3">
-                {profile.contact_phone && (
-                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
-                    <div>
-                      <p className="text-xs text-gray-600">Phone</p>
-                      <p className="font-medium">{profile.contact_phone}</p>
-                    </div>
-                    <button 
-                      onClick={() => handleEdit('contact_phone', profile.contact_phone)}
-                      className="text-blue-600 text-sm"
-                    >
-                      ✏️
-                    </button>
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+                  <div className="flex-1">
+                    <p className="text-xs text-gray-600">Phone</p>
+                    <p className={`font-medium ${!profile.contact_phone ? 'text-gray-400' : ''}`}>
+                      {profile.contact_phone || 'Add phone number...'}
+                    </p>
                   </div>
-                )}
+                  <button 
+                    onClick={() => handleEdit('contact_phone', profile.contact_phone)}
+                    className="text-blue-600 text-sm"
+                  >
+                    ✏️
+                  </button>
+                </div>
 
-                {profile.contact_email && (
-                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
-                    <div>
-                      <p className="text-xs text-gray-600">Email</p>
-                      <p className="font-medium">{profile.contact_email}</p>
-                    </div>
-                    <button 
-                      onClick={() => handleEdit('contact_email', profile.contact_email)}
-                      className="text-blue-600 text-sm"
-                    >
-                      ✏️
-                    </button>
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+                  <div className="flex-1">
+                    <p className="text-xs text-gray-600">Email</p>
+                    <p className={`font-medium ${!profile.contact_email ? 'text-gray-400' : ''}`}>
+                      {profile.contact_email || 'Add email...'}
+                    </p>
                   </div>
-                )}
+                  <button 
+                    onClick={() => handleEdit('contact_email', profile.contact_email)}
+                    className="text-blue-600 text-sm"
+                  >
+                    ✏️
+                  </button>
+                </div>
 
-                {profile.contact_instagram && (
-                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
-                    <div>
-                      <p className="text-xs text-gray-600">Instagram</p>
-                      <p className="font-medium">{profile.contact_instagram}</p>
-                    </div>
-                    <button 
-                      onClick={() => handleEdit('contact_instagram', profile.contact_instagram)}
-                      className="text-blue-600 text-sm"
-                    >
-                      ✏️
-                    </button>
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+                  <div className="flex-1">
+                    <p className="text-xs text-gray-600">Instagram</p>
+                    <p className={`font-medium ${!profile.contact_instagram ? 'text-gray-400' : ''}`}>
+                      {profile.contact_instagram || 'Add Instagram...'}
+                    </p>
                   </div>
-                )}
+                  <button 
+                    onClick={() => handleEdit('contact_instagram', profile.contact_instagram)}
+                    className="text-blue-600 text-sm"
+                  >
+                    ✏️
+                  </button>
+                </div>
+
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+                  <div className="flex-1">
+                    <p className="text-xs text-gray-600">Facebook</p>
+                    <p className={`font-medium ${!profile.contact_facebook ? 'text-gray-400' : ''}`}>
+                      {profile.contact_facebook || 'Add Facebook...'}
+                    </p>
+                  </div>
+                  <button 
+                    onClick={() => handleEdit('contact_facebook', profile.contact_facebook)}
+                    className="text-blue-600 text-sm"
+                  >
+                    ✏️
+                  </button>
+                </div>
               </div>
             </div>
           </div>
