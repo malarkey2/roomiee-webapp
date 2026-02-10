@@ -27,9 +27,24 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onBack }) => {
     setShowEditPreferences(true);
   };
 
-  const handleSavePreferences = (preferences: DetailedPreferences) => {
-    console.log('Saved preferences:', preferences);
-    setShowEditPreferences(false);
+  const handleSavePreferences = async (preferences: DetailedPreferences) => {
+    if (!user) return;
+
+    try {
+      await updateProfile(user.id, {
+        diet: preferences.diet,
+        pets: preferences.pets,
+        sleep_schedule: preferences.sleepSchedule,
+        smoking: preferences.smoking,
+        religion: preferences.religion,
+        drinking: preferences.drinking,
+        cleanliness: preferences.cleanliness,
+      });
+      await refreshProfile();
+      setShowEditPreferences(false);
+    } catch (error) {
+      console.error('Error saving preferences:', error);
+    }
   };
 
   const handleSave = async () => {
@@ -260,99 +275,66 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onBack }) => {
               </div>
             </div>
 
-            {/* Lifestyle Preferences */}
+            {/* Lifestyle Preferences - Single Edit Button */}
             <div className="mb-6">
-              <h2 className="text-lg font-semibold mb-3">Lifestyle</h2>
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-lg font-semibold">Lifestyle</h2>
+                <button 
+                  onClick={handleEditLifestyle}
+                  className="text-blue-600 text-sm"
+                >
+                  ✏️ Edit All
+                </button>
+              </div>
               
               <div className="space-y-3">
-                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
-                  <div className="flex-1">
-                    <p className="text-xs text-gray-600">Diet</p>
-                    <p className={`font-medium ${!profile.diet ? 'text-gray-400' : ''}`}>
-                      {profile.diet || 'Add diet preference...'}
-                    </p>
-                  </div>
-                  <button 
-                    onClick={handleEditLifestyle}
-                    className="text-blue-600 text-sm"
-                  >
-                    ✏️
-                  </button>
+                <div className="p-3 bg-gray-50 rounded-xl">
+                  <p className="text-xs text-gray-600">Diet</p>
+                  <p className={`font-medium ${!profile.diet ? 'text-gray-400' : ''}`}>
+                    {profile.diet || 'Add diet preference...'}
+                  </p>
                 </div>
 
-                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
-                  <div className="flex-1">
-                    <p className="text-xs text-gray-600">Pets</p>
-                    <p className={`font-medium ${!profile.pets ? 'text-gray-400' : ''}`}>
-                      {profile.pets || 'Add pet preference...'}
-                    </p>
-                  </div>
-                  <button 
-                    onClick={handleEditLifestyle}
-                    className="text-blue-600 text-sm"
-                  >
-                    ✏️
-                  </button>
+                <div className="p-3 bg-gray-50 rounded-xl">
+                  <p className="text-xs text-gray-600">Pets</p>
+                  <p className={`font-medium ${!profile.pets ? 'text-gray-400' : ''}`}>
+                    {profile.pets || 'Add pet preference...'}
+                  </p>
                 </div>
 
-                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
-                  <div className="flex-1">
-                    <p className="text-xs text-gray-600">Sleep Schedule</p>
-                    <p className={`font-medium ${!profile.sleep_schedule ? 'text-gray-400' : ''}`}>
-                      {profile.sleep_schedule || 'Add sleep schedule...'}
-                    </p>
-                  </div>
-                  <button 
-                    onClick={handleEditLifestyle}
-                    className="text-blue-600 text-sm"
-                  >
-                    ✏️
-                  </button>
+                <div className="p-3 bg-gray-50 rounded-xl">
+                  <p className="text-xs text-gray-600">Sleep Schedule</p>
+                  <p className={`font-medium ${!profile.sleep_schedule ? 'text-gray-400' : ''}`}>
+                    {profile.sleep_schedule || 'Add sleep schedule...'}
+                  </p>
                 </div>
 
-                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
-                  <div className="flex-1">
-                    <p className="text-xs text-gray-600">Smoking</p>
-                    <p className={`font-medium ${!profile.smoking ? 'text-gray-400' : ''}`}>
-                      {profile.smoking || 'Add smoking preference...'}
-                    </p>
-                  </div>
-                  <button 
-                    onClick={handleEditLifestyle}
-                    className="text-blue-600 text-sm"
-                  >
-                    ✏️
-                  </button>
+                <div className="p-3 bg-gray-50 rounded-xl">
+                  <p className="text-xs text-gray-600">Smoking</p>
+                  <p className={`font-medium ${!profile.smoking ? 'text-gray-400' : ''}`}>
+                    {profile.smoking || 'Add smoking preference...'}
+                  </p>
                 </div>
 
-                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
-                  <div className="flex-1">
-                    <p className="text-xs text-gray-600">Religion</p>
-                    <p className={`font-medium ${!profile.religion ? 'text-gray-400' : ''}`}>
-                      {profile.religion || 'Add religion...'}
-                    </p>
-                  </div>
-                  <button 
-                    onClick={handleEditLifestyle}
-                    className="text-blue-600 text-sm"
-                  >
-                    ✏️
-                  </button>
+                <div className="p-3 bg-gray-50 rounded-xl">
+                  <p className="text-xs text-gray-600">Religion</p>
+                  <p className={`font-medium ${!profile.religion ? 'text-gray-400' : ''}`}>
+                    {profile.religion || 'Add religion...'}
+                  </p>
                 </div>
 
-                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
-                  <div className="flex-1">
-                    <p className="text-xs text-gray-600">Drinking</p>
-                    <p className={`font-medium ${!profile.drinking ? 'text-gray-400' : ''}`}>
-                      {profile.drinking || 'Add drinking preference...'}
-                    </p>
-                  </div>
-                  <button 
-                    onClick={handleEditLifestyle}
-                    className="text-blue-600 text-sm"
-                  >
-                    ✏️
-                  </button>
+                <div className="p-3 bg-gray-50 rounded-xl">
+                  <p className="text-xs text-gray-600">Drinking</p>
+                  <p className={`font-medium ${!profile.drinking ? 'text-gray-400' : ''}`}>
+                    {profile.drinking || 'Add drinking preference...'}
+                  </p>
+                </div>
+
+                <div className="p-3 bg-gray-50 rounded-xl">
+                  <p className="text-xs text-gray-600">Cleanliness</p>
+                  <p className={`font-medium ${!profile.cleanliness ? 'text-gray-400' : ''}`}>
+                    {profile.cleanliness || 'Add cleanliness preference...'}
+                  </p>
                 </div>
               </div>
             </div>

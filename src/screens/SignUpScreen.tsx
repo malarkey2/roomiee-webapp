@@ -6,11 +6,17 @@ interface SignUpScreenProps {
   onEmailSignUp: (email: string, password: string) => void;
   onGoogleSignUp: () => void;
   onBack: () => void;
+  onGoToLogin?: () => void;
 }
 
 const PRESIGNUP_STORAGE_KEY = 'roomie_presignup_data';
 
-export const SignUpScreen: React.FC<SignUpScreenProps> = ({ onEmailSignUp, onGoogleSignUp, onBack }) => {
+export const SignUpScreen: React.FC<SignUpScreenProps> = ({ 
+  onEmailSignUp, 
+  onGoogleSignUp, 
+  onBack,
+  onGoToLogin 
+}) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -216,7 +222,10 @@ export const SignUpScreen: React.FC<SignUpScreenProps> = ({ onEmailSignUp, onGoo
 
         <p className="text-center text-sm text-gray-600 mt-6">
           Already have an account?{' '}
-          <button className="text-black font-medium hover:underline">
+          <button 
+            onClick={onGoToLogin}
+            className="text-black font-medium hover:underline"
+          >
             Sign in
           </button>
         </p>

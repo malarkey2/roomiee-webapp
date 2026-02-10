@@ -86,7 +86,7 @@ export const GenderScreen: React.FC<GenderScreenProps> = ({ onNext, onBack }) =>
               }`}
               disabled={loading}
             >
-              <span className="text-3xl">{option.emoji}</span>
+              {/* <span className="text-3xl">{option.emoji}</span> */}
               <span className="font-medium">{option.label}</span>
             </button>
           ))}

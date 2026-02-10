@@ -1,3 +1,4 @@
+import { Routes, Route, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { useAuth } from './contexts/AuthContext';
 import { LandingPage } from './screens/LandingPage';
@@ -25,14 +26,15 @@ import { ProfileScreen } from './screens/ProfileScreen';
 import { NotificationsScreen } from './screens/NotificationsScreen';
 import { updateProfile } from './lib/profileHelpers';
 
-type Screen = 'landing' | 'welcome' | 'login' | 'userType' | 'housingStatus' | 'location' | 'housedLocation' | 'houseType' | 'rentAndOccupants' | 'roommatesNeeded' | 'signUp' | 'name' | 'profilePhoto' | 'avatar' | 'birthday' | 'gender' | 'desiredHouseType' | 'budget' | 'timeline' | 'contactPreference' | 'swipe' | 'profile' | 'notifications';
+type Screen = 'welcome' | 'login' | 'userType' | 'housingStatus' | 'location' | 'housedLocation' | 'houseType' | 'rentAndOccupants' | 'roommatesNeeded' | 'signUp' | 'name' | 'profilePhoto' | 'avatar' | 'birthday' | 'gender' | 'desiredHouseType' | 'budget' | 'timeline' | 'contactPreference' | 'swipe' | 'profile' | 'notifications';
 
 const PRESIGNUP_STORAGE_KEY = 'roomie_presignup_data';
 const ONBOARDING_SEEN_KEY = 'roomie_onboarding_seen';
 
-function App() {
+function AppFlow() {
+  const navigate = useNavigate();
   const { user, profile, loading, refreshProfile } = useAuth();
-  const [currentScreen, setCurrentScreen] = useState<Screen>('landing');
+  const [currentScreen, setCurrentScreen] = useState<Screen>('welcome');
   const [housingStatus, setHousingStatus] = useState<'have-place' | 'looking' | null>(null);
   const [hasSeenOnboarding, setHasSeenOnboarding] = useState(() => {
     return localStorage.getItem(ONBOARDING_SEEN_KEY) === 'true';
@@ -137,15 +139,11 @@ function App() {
 
   return (
     <>
-      {currentScreen === 'landing' && (
-        <LandingPage
-          onGetStarted={() => setCurrentScreen('welcome')}
-        />
-      )}
       {currentScreen === 'welcome' && (
         <WelcomeScreen
           onNewUser={() => setCurrentScreen('userType')}
           onReturningUser={() => setCurrentScreen('login')}
+          onBack={() => navigate('/')}
         />
       )}
       {currentScreen === 'login' && (
@@ -155,7 +153,6 @@ function App() {
           onSignUp={() => setCurrentScreen('userType')}
         />
       )}
-      {/* STAGE 1: PRE-SIGNUP - Save to localStorage */}
       {currentScreen === 'userType' && (
         <UserTypeScreen
           onSelect={(type) => {
@@ -233,7 +230,6 @@ function App() {
           onBack={() => setCurrentScreen('rentAndOccupants')}
         />
       )}
-      {/* STAGE 2: POST-SIGNUP ONBOARDING - Save to database after each screen */}
       {currentScreen === 'signUp' && (
         <SignUpScreen
           onEmailSignUp={() => setCurrentScreen('name')}
@@ -245,6 +241,7 @@ function App() {
               setCurrentScreen('location');
             }
           }}
+          onGoToLogin={() => setCurrentScreen('login')}
         />
       )}
       {currentScreen === 'name' && (
@@ -314,7 +311,6 @@ function App() {
           }}
         />
       )}
-      {/* STAGE 3: POST-ONBOARDING - All edits save immediately via ProfileScreen */}
       {currentScreen === 'swipe' && (
         <SwipeScreen
           housingStatus={housingStatus}
@@ -335,6 +331,20 @@ function App() {
         />
       )}
     </>
+  );
+}
+
+function App() {
+  const navigate = useNavigate();
+
+  return (
+    <Routes>
+      {/* Landing page at root */}
+      <Route path="/" element={<LandingPage onGetStarted={() => navigate('/app')} />} />
+      
+      {/* App flow at /app */}
+      <Route path="/app" element={<AppFlow />} />
+    </Routes>
   );
 }
 
