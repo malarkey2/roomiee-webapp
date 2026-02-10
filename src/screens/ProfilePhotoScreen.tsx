@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { Button } from '../components/Button';
+import { useAuth } from '../contexts/AuthContext';
+import { updateProfile } from '../lib/profileHelpers';
 
 interface ProfilePhotoScreenProps {
   onContinue: (photoUrl?: string) => void;
@@ -9,19 +11,60 @@ interface ProfilePhotoScreenProps {
 
 export const ProfilePhotoScreen: React.FC<ProfilePhotoScreenProps> = ({ 
   onContinue, 
-  onChooseAvatar,
+  onChooseAvatar, 
   onBack 
 }) => {
-  const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
+  const { user, refreshProfile } = useAuth();
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setSelectedPhoto(reader.result as string);
+        setPhotoPreview(reader.result as string);
       };
       reader.readAsDataURL(file);
+    }
+  };
+
+  const handleContinue = async () => {
+    if (!user) return;
+
+    setLoading(true);
+    try {
+      await updateProfile(user.id, {
+        profile_photo_url: photoPreview || null,
+        onboarding_step: 'birthday',
+      });
+
+      await refreshProfile();
+      onContinue(photoPreview || undefined);
+    } catch (error) {
+      console.error('Error saving photo:', error);
+      alert('Failed to save. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSkip = async () => {
+    if (!user) return;
+
+    setLoading(true);
+    try {
+      await updateProfile(user.id, {
+        onboarding_step: 'birthday',
+      });
+
+      await refreshProfile();
+      onContinue();
+    } catch (error) {
+      console.error('Error skipping photo:', error);
+      alert('Failed to continue. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -30,69 +73,63 @@ export const ProfilePhotoScreen: React.FC<ProfilePhotoScreenProps> = ({
       <button 
         onClick={onBack}
         className="self-start mb-4 text-gray-600 hover:text-black transition-colors"
+        disabled={loading}
       >
         ← Back
       </button>
       
       <div className="flex-1 flex flex-col justify-center max-w-md mx-auto w-full">
         <h1 className="text-2xl font-semibold mb-2 text-black">
-          Add your profile photo
+          Add a profile photo
         </h1>
         <p className="text-gray-600 text-sm mb-8">
-          A great photograph is a great introduction to you.<br />
-          You can change this any time.
+          Help your future roommates get to know you
         </p>
 
-        {/* Photo preview circle */}
-        <div className="w-48 h-48 mx-auto mb-8 bg-gray-200 rounded-full flex items-center justify-center overflow-hidden">
-          {selectedPhoto ? (
-            <img src={selectedPhoto} alt="Profile" className="w-full h-full object-cover" />
-          ) : (
-            <svg className="w-20 h-20 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-            </svg>
-          )}
-        </div>
+        <div className="mb-8">
+          <div className="w-48 h-48 mx-auto mb-6 bg-gray-100 rounded-full flex items-center justify-center overflow-hidden">
+            {photoPreview ? (
+              <img src={photoPreview} alt="Profile" className="w-full h-full object-cover" />
+            ) : (
+              <span className="text-6xl">📷</span>
+            )}
+          </div>
 
-        {/* Upload buttons */}
-        <div className="flex gap-3 mb-8">
-          <label className="flex-1">
+          <label className="block">
             <input
               type="file"
               accept="image/*"
-              onChange={handleFileSelect}
+              onChange={handleFileChange}
               className="hidden"
+              disabled={loading}
             />
-            <div className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl hover:bg-gray-50 transition-all text-center font-medium cursor-pointer">
-              Add from Instagram
+            <div className="w-full px-6 py-3 border-2 border-gray-200 rounded-xl font-medium text-center hover:bg-gray-50 transition-all cursor-pointer">
+              {photoPreview ? 'Change Photo' : 'Upload Photo'}
             </div>
           </label>
-          <label className="flex-1">
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handleFileSelect}
-              className="hidden"
-            />
-            <div className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl hover:bg-gray-50 transition-all text-center font-medium cursor-pointer">
-              Add from gallery
-            </div>
-          </label>
+
+          <button
+            onClick={onChooseAvatar}
+            className="w-full mt-3 px-6 py-3 border-2 border-gray-200 rounded-xl font-medium hover:bg-gray-50 transition-all"
+            disabled={loading}
+          >
+            Choose Avatar Instead
+          </button>
         </div>
 
-        <Button 
-          onClick={() => onContinue(selectedPhoto || undefined)}
-          className="w-full mb-3"
-        >
-          Continue
-        </Button>
-
-        <button
-          onClick={onChooseAvatar}
-          className="w-full py-3 text-gray-600 hover:text-black transition-colors font-medium"
-        >
-          Choose an Avatar instead
-        </button>
+        <div className="space-y-3">
+          <Button onClick={handleContinue} disabled={!photoPreview || loading}>
+            {loading ? 'Saving...' : 'Continue with Photo'}
+          </Button>
+          
+          <button
+            onClick={handleSkip}
+            className="w-full px-6 py-3 text-gray-600 hover:text-black transition-colors"
+            disabled={loading}
+          >
+            Skip for now
+          </button>
+        </div>
       </div>
     </div>
   );

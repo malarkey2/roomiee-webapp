@@ -1,47 +1,25 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '../components/Button';
 import { EditPreferencesScreen } from './EditPreferencesScreen';
+import { useAuth } from '../contexts/AuthContext';
+import { updateProfile } from '../lib/profileHelpers';
 import type { DetailedPreferences } from './EditPreferencesScreen';
 
 interface ProfileScreenProps {
   onBack: () => void;
 }
 
-// Mock user data - in real app this would come from state/database
-const MOCK_USER_PROFILE = {
-  name: 'John Doe',
-  age: 25,
-  gender: 'Man',
-  location: 'Durham, NC',
-  housingStatus: 'looking',
-  budget_min: 800,
-  budget_max: 1200,
-  move_in_date: '2026-04-01',
-  cleanliness: 4,
-  noise_tolerance: 3,
-  guest_frequency: 2,
-  diet: 'Vegetarian',
-  pets: 'Open to pets',
-  sleepSchedule: 'Night owl',
-  smoking: 'Non-smoker',
-  background: "I'm a software engineer who loves hiking and cooking. Looking for a clean, respectful roommate.",
-  contactPreferences: {
-    phone: '(555) 123-4567',
-    email: 'john@example.com',
-    instagram: '@johndoe',
-  },
-};
-
 export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onBack }) => {
-  const [profile, setProfile] = useState(MOCK_USER_PROFILE);
+  const { user, profile, refreshProfile } = useAuth();
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [showEditPreferences, setShowEditPreferences] = useState(false);
   const [editField, setEditField] = useState<string | null>(null);
   const [editValue, setEditValue] = useState<string>('');
+  const [loading, setLoading] = useState(false);
 
   const handleEdit = (field: string, currentValue: any) => {
     setEditField(field);
-    setEditValue(String(currentValue));
+    setEditValue(String(currentValue || ''));
     setIsEditModalOpen(true);
   };
 
@@ -51,17 +29,24 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onBack }) => {
 
   const handleSavePreferences = (preferences: DetailedPreferences) => {
     console.log('Saved preferences:', preferences);
-    // Update profile with new preferences
-    // You can map the preferences back to profile fields here
     setShowEditPreferences(false);
   };
 
-  const handleSave = () => {
-    if (editField) {
-      setProfile({ ...profile, [editField]: editValue });
+  const handleSave = async () => {
+    if (!editField || !user) return;
+
+    setLoading(true);
+    try {
+      await updateProfile(user.id, { [editField]: editValue });
+      await refreshProfile();
+      setIsEditModalOpen(false);
+      setEditField(null);
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      alert('Failed to save. Please try again.');
+    } finally {
+      setLoading(false);
     }
-    setIsEditModalOpen(false);
-    setEditField(null);
   };
 
   const handleCancel = () => {
@@ -70,11 +55,21 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onBack }) => {
     setEditValue('');
   };
 
-  const moveInDate = new Date(profile.move_in_date).toLocaleDateString('en-US', { 
-    month: 'short', 
-    day: 'numeric', 
-    year: 'numeric' 
-  });
+  if (!profile) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-gray-200 border-t-black rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading profile...</p>
+        </div>
+      </div>
+    );
+  }
+
+  const displayName = profile.display_name || `${profile.first_name} ${profile.last_name}` || 'Anonymous';
+  const moveInDate = profile.move_in_date 
+    ? new Date(profile.move_in_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+    : 'Not set';
 
   // If editing preferences, show that screen
   if (showEditPreferences) {
@@ -106,7 +101,15 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onBack }) => {
             {/* Profile Photo */}
             <div className="flex flex-col items-center my-6">
               <div className="w-32 h-32 bg-gray-200 rounded-full flex items-center justify-center mb-4">
-                <span className="text-6xl">👨</span>
+                {profile.avatar_id ? (
+                  <span className="text-6xl">
+                    {profile.gender === 'Woman' ? '👩' : profile.gender === 'Man' ? '👨' : '🧑'}
+                  </span>
+                ) : profile.profile_photo_url ? (
+                  <img src={profile.profile_photo_url} alt="Profile" className="w-full h-full object-cover rounded-full" />
+                ) : (
+                  <span className="text-6xl">📷</span>
+                )}
               </div>
               <button 
                 onClick={() => handleEdit('photo', 'photo')}
@@ -124,10 +127,10 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onBack }) => {
                 <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
                   <div>
                     <p className="text-xs text-gray-600">Name</p>
-                    <p className="font-medium">{profile.name}</p>
+                    <p className="font-medium">{displayName}</p>
                   </div>
                   <button 
-                    onClick={() => handleEdit('name', profile.name)}
+                    onClick={() => handleEdit('first_name', profile.first_name)}
                     className="text-blue-600 text-sm"
                   >
                     ✏️
@@ -137,7 +140,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onBack }) => {
                 <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
                   <div>
                     <p className="text-xs text-gray-600">Age</p>
-                    <p className="font-medium">{profile.age}</p>
+                    <p className="font-medium">{profile.age || 'Not set'}</p>
                   </div>
                   <button 
                     onClick={() => handleEdit('age', profile.age)}
@@ -150,7 +153,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onBack }) => {
                 <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
                   <div>
                     <p className="text-xs text-gray-600">Gender</p>
-                    <p className="font-medium">{profile.gender}</p>
+                    <p className="font-medium">{profile.gender || 'Not set'}</p>
                   </div>
                   <button 
                     onClick={() => handleEdit('gender', profile.gender)}
@@ -163,10 +166,10 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onBack }) => {
                 <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
                   <div>
                     <p className="text-xs text-gray-600">Location</p>
-                    <p className="font-medium">{profile.location}</p>
+                    <p className="font-medium">{profile.location || profile.full_address || 'Not set'}</p>
                   </div>
                   <button 
-                    onClick={() => handleEdit('location', profile.location)}
+                    onClick={() => handleEdit('location', profile.location || profile.full_address)}
                     className="text-blue-600 text-sm"
                   >
                     ✏️
@@ -180,31 +183,80 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onBack }) => {
               <h2 className="text-lg font-semibold mb-3">Housing Details</h2>
               
               <div className="space-y-3">
-                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
-                  <div>
-                    <p className="text-xs text-gray-600">Budget Range</p>
-                    <p className="font-medium">${profile.budget_min} - ${profile.budget_max}/month</p>
-                  </div>
-                  <button 
-                    onClick={() => handleEdit('budget', `${profile.budget_min}-${profile.budget_max}`)}
-                    className="text-blue-600 text-sm"
-                  >
-                    ✏️
-                  </button>
-                </div>
+                {profile.housing_status === 'looking' ? (
+                  <>
+                    <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+                      <div>
+                        <p className="text-xs text-gray-600">Budget Range</p>
+                        <p className="font-medium">
+                          ${profile.budget_min || 0} - ${profile.budget_max || 0}/month
+                        </p>
+                      </div>
+                      <button 
+                        onClick={() => handleEdit('budget_min', profile.budget_min)}
+                        className="text-blue-600 text-sm"
+                      >
+                        ✏️
+                      </button>
+                    </div>
 
-                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
-                  <div>
-                    <p className="text-xs text-gray-600">Move-in Date</p>
-                    <p className="font-medium">{moveInDate}</p>
-                  </div>
-                  <button 
-                    onClick={() => handleEdit('move_in_date', profile.move_in_date)}
-                    className="text-blue-600 text-sm"
-                  >
-                    ✏️
-                  </button>
-                </div>
+                    <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+                      <div>
+                        <p className="text-xs text-gray-600">Move-in Date</p>
+                        <p className="font-medium">{moveInDate}</p>
+                      </div>
+                      <button 
+                        onClick={() => handleEdit('move_in_date', profile.move_in_date)}
+                        className="text-blue-600 text-sm"
+                      >
+                        ✏️
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+                      <div>
+                        <p className="text-xs text-gray-600">House Type</p>
+                        <p className="font-medium">{profile.house_type || 'Not set'}</p>
+                      </div>
+                      <button 
+                        onClick={() => handleEdit('house_type', profile.house_type)}
+                        className="text-blue-600 text-sm"
+                      >
+                        ✏️
+                      </button>
+                    </div>
+
+                    <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+                      <div>
+                        <p className="text-xs text-gray-600">Rent per person</p>
+                        <p className="font-medium">${profile.budget_max || 0}/month</p>
+                      </div>
+                      <button 
+                        onClick={() => handleEdit('budget_max', profile.budget_max)}
+                        className="text-blue-600 text-sm"
+                      >
+                        ✏️
+                      </button>
+                    </div>
+
+                    <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+                      <div>
+                        <p className="text-xs text-gray-600">Occupancy</p>
+                        <p className="font-medium">
+                          {profile.current_occupants || 0}/{profile.total_rooms || 0} rooms filled
+                        </p>
+                      </div>
+                      <button 
+                        onClick={() => handleEdit('current_occupants', profile.current_occupants)}
+                        className="text-blue-600 text-sm"
+                      >
+                        ✏️
+                      </button>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
 
@@ -213,89 +265,99 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onBack }) => {
               <h2 className="text-lg font-semibold mb-3">Lifestyle</h2>
               
               <div className="space-y-3">
-                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
-                  <div>
-                    <p className="text-xs text-gray-600">Diet</p>
-                    <p className="font-medium">{profile.diet}</p>
+                {profile.diet && (
+                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+                    <div>
+                      <p className="text-xs text-gray-600">Diet</p>
+                      <p className="font-medium">{profile.diet}</p>
+                    </div>
+                    <button 
+                      onClick={handleEditLifestyle}
+                      className="text-blue-600 text-sm"
+                    >
+                      ✏️
+                    </button>
                   </div>
-                  <button 
-                    onClick={handleEditLifestyle}
-                    className="text-blue-600 text-sm"
-                  >
-                    ✏️
-                  </button>
-                </div>
+                )}
 
-                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
-                  <div>
-                    <p className="text-xs text-gray-600">Pets</p>
-                    <p className="font-medium">{profile.pets}</p>
+                {profile.pets && (
+                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+                    <div>
+                      <p className="text-xs text-gray-600">Pets</p>
+                      <p className="font-medium">{profile.pets}</p>
+                    </div>
+                    <button 
+                      onClick={handleEditLifestyle}
+                      className="text-blue-600 text-sm"
+                    >
+                      ✏️
+                    </button>
                   </div>
-                  <button 
-                    onClick={handleEditLifestyle}
-                    className="text-blue-600 text-sm"
-                  >
-                    ✏️
-                  </button>
-                </div>
+                )}
 
-                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
-                  <div>
-                    <p className="text-xs text-gray-600">Sleep Schedule</p>
-                    <p className="font-medium">{profile.sleepSchedule}</p>
+                {profile.sleep_schedule && (
+                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+                    <div>
+                      <p className="text-xs text-gray-600">Sleep Schedule</p>
+                      <p className="font-medium">{profile.sleep_schedule}</p>
+                    </div>
+                    <button 
+                      onClick={handleEditLifestyle}
+                      className="text-blue-600 text-sm"
+                    >
+                      ✏️
+                    </button>
                   </div>
-                  <button 
-                    onClick={handleEditLifestyle}
-                    className="text-blue-600 text-sm"
-                  >
-                    ✏️
-                  </button>
-                </div>
+                )}
 
-                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
-                  <div>
-                    <p className="text-xs text-gray-600">Smoking</p>
-                    <p className="font-medium">{profile.smoking}</p>
+                {profile.smoking && (
+                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+                    <div>
+                      <p className="text-xs text-gray-600">Smoking</p>
+                      <p className="font-medium">{profile.smoking}</p>
+                    </div>
+                    <button 
+                      onClick={handleEditLifestyle}
+                      className="text-blue-600 text-sm"
+                    >
+                      ✏️
+                    </button>
                   </div>
-                  <button 
-                    onClick={handleEditLifestyle}
-                    className="text-blue-600 text-sm"
-                  >
-                    ✏️
-                  </button>
-                </div>
+                )}
               </div>
             </div>
 
             {/* Background */}
-            <div className="mb-6">
-              <h2 className="text-lg font-semibold mb-3">My Background</h2>
-              <div className="flex items-start justify-between p-3 bg-gray-50 rounded-xl">
-                <div className="flex-1">
-                  <p className="text-gray-700">{profile.background}</p>
+            {profile.background && (
+              <div className="mb-6">
+                <h2 className="text-lg font-semibold mb-3">My Background</h2>
+                <div className="flex items-start justify-between p-3 bg-gray-50 rounded-xl">
+                  <div className="flex-1">
+                    <p className="text-gray-700">{profile.background}</p>
+                  </div>
+                  <button 
+                    onClick={() => handleEdit('background', profile.background)}
+                    className="text-blue-600 text-sm ml-3"
+                  >
+                    ✏️
+                  </button>
                 </div>
-                <button 
-                  onClick={() => handleEdit('background', profile.background)}
-                  className="text-blue-600 text-sm ml-3"
-                >
-                  ✏️
-                </button>
               </div>
-            </div>
+            )}
 
             {/* Contact Preferences */}
             <div className="mb-6">
               <h2 className="text-lg font-semibold mb-3">Contact Info (Shared with Matches)</h2>
               
               <div className="space-y-3">
-                {profile.contactPreferences.phone && (
+                {profile.contact_phone && (
                   <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
                     <div>
                       <p className="text-xs text-gray-600">Phone</p>
-                      <p className="font-medium">{profile.contactPreferences.phone}</p>
+                      <p className="font-medium">{profile.contact_phone}</p>
                     </div>
                     <button 
-                      onClick={() => handleEdit('contact_phone', profile.contactPreferences.phone)}
+                      onClick={() => handleEdit('contact_phone', profile.contact_phone)}
                       className="text-blue-600 text-sm"
                     >
                       ✏️
@@ -303,14 +365,14 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onBack }) => {
                   </div>
                 )}
 
-                {profile.contactPreferences.email && (
+                {profile.contact_email && (
                   <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
                     <div>
                       <p className="text-xs text-gray-600">Email</p>
-                      <p className="font-medium">{profile.contactPreferences.email}</p>
+                      <p className="font-medium">{profile.contact_email}</p>
                     </div>
                     <button 
-                      onClick={() => handleEdit('contact_email', profile.contactPreferences.email)}
+                      onClick={() => handleEdit('contact_email', profile.contact_email)}
                       className="text-blue-600 text-sm"
                     >
                       ✏️
@@ -318,14 +380,14 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onBack }) => {
                   </div>
                 )}
 
-                {profile.contactPreferences.instagram && (
+                {profile.contact_instagram && (
                   <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
                     <div>
                       <p className="text-xs text-gray-600">Instagram</p>
-                      <p className="font-medium">{profile.contactPreferences.instagram}</p>
+                      <p className="font-medium">{profile.contact_instagram}</p>
                     </div>
                     <button 
-                      onClick={() => handleEdit('contact_instagram', profile.contactPreferences.instagram)}
+                      onClick={() => handleEdit('contact_instagram', profile.contact_instagram)}
                       className="text-blue-600 text-sm"
                     >
                       ✏️
@@ -355,11 +417,12 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onBack }) => {
               <button
                 onClick={handleCancel}
                 className="flex-1 px-4 py-3 border-2 border-gray-200 rounded-xl font-medium hover:bg-gray-50 transition-all"
+                disabled={loading}
               >
                 Cancel
               </button>
-              <Button onClick={handleSave} className="flex-1">
-                Save
+              <Button onClick={handleSave} className="flex-1" disabled={loading}>
+                {loading ? 'Saving...' : 'Save'}
               </Button>
             </div>
           </div>

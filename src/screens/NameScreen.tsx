@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { Button } from '../components/Button';
+import { useAuth } from '../contexts/AuthContext';
+import { updateProfile } from '../lib/profileHelpers';
 
 interface NameScreenProps {
   onNext: (firstName: string, lastName: string, useAlias: boolean, alias?: string) => void;
@@ -7,104 +9,120 @@ interface NameScreenProps {
 }
 
 export const NameScreen: React.FC<NameScreenProps> = ({ onNext, onBack }) => {
+  const { user, refreshProfile } = useAuth();
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
-  const [preferredName, setPreferredName] = useState('');
   const [useAlias, setUseAlias] = useState(false);
   const [alias, setAlias] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleNext = () => {
-    if (firstName.trim() && lastName.trim()) {
-      // If alias is enabled, require alias field
-      if (useAlias && !alias.trim()) {
-        return;
-      }
-      onNext(firstName.trim(), lastName.trim(), useAlias, alias.trim());
+  const handleContinue = async () => {
+    if (!firstName.trim() || !lastName.trim()) {
+      alert('Please enter your first and last name');
+      return;
+    }
+
+    if (useAlias && !alias.trim()) {
+      alert('Please enter an alias or uncheck the option');
+      return;
+    }
+
+    if (!user) return;
+
+    setLoading(true);
+    try {
+      await updateProfile(user.id, {
+        first_name: firstName.trim(),
+        last_name: lastName.trim(),
+        use_alias: useAlias,
+        display_name: useAlias ? alias.trim() : `${firstName.trim()} ${lastName.trim()}`,
+        onboarding_step: 'profilePhoto',
+      });
+
+      await refreshProfile();
+      onNext(firstName, lastName, useAlias, alias);
+    } catch (error) {
+      console.error('Error saving name:', error);
+      alert('Failed to save. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
-
-  const isValid = firstName.trim() && lastName.trim() && (!useAlias || alias.trim());
 
   return (
     <div className="min-h-screen bg-white p-6 flex flex-col">
       <button 
         onClick={onBack}
         className="self-start mb-4 text-gray-600 hover:text-black transition-colors"
+        disabled={loading}
       >
         ← Back
       </button>
       
       <div className="flex-1 flex flex-col justify-center max-w-md mx-auto w-full">
-        <h1 className="text-2xl font-semibold mb-8 text-black">
+        <h1 className="text-2xl font-semibold mb-2 text-black">
           What's your name?
         </h1>
+        <p className="text-gray-600 text-sm mb-8">
+          This will be shown on your profile
+        </p>
 
         <div className="space-y-4 mb-6">
-          <div className="flex gap-3">
+          <div>
+            <label className="block text-sm font-medium mb-2">First Name</label>
             <input
               type="text"
               value={firstName}
               onChange={(e) => setFirstName(e.target.value)}
-              placeholder="First name"
-              className="flex-1 px-4 py-4 border-2 border-gray-200 rounded-xl focus:border-black focus:outline-none transition-colors"
+              placeholder="John"
+              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-black focus:outline-none transition-colors"
+              disabled={loading}
             />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-2">Last Name</label>
             <input
               type="text"
               value={lastName}
               onChange={(e) => setLastName(e.target.value)}
-              placeholder="Last name"
-              className="flex-1 px-4 py-4 border-2 border-gray-200 rounded-xl focus:border-black focus:outline-none transition-colors"
-            />
-          </div>
-
-          <input
-            type="text"
-            value={preferredName}
-            onChange={(e) => setPreferredName(e.target.value)}
-            placeholder="Preferred name (optional)"
-            className="w-full px-4 py-4 border-2 border-gray-200 rounded-xl focus:border-black focus:outline-none transition-colors"
-          />
-        </div>
-
-        {/* Alias toggle */}
-        <div className="p-4 bg-gray-50 rounded-xl mb-4">
-          <div className="flex items-center justify-between mb-3">
-            <div>
-              <p className="font-medium text-black">Display alias for safety</p>
-              <p className="text-sm text-gray-600">Show a nickname instead of your real name</p>
-            </div>
-            <button
-              onClick={() => setUseAlias(!useAlias)}
-              className={`relative w-12 h-7 rounded-full transition-colors ${
-                useAlias ? 'bg-black' : 'bg-gray-300'
-              }`}
-            >
-              <div
-                className={`absolute top-1 w-5 h-5 bg-white rounded-full transition-transform ${
-                  useAlias ? 'translate-x-6' : 'translate-x-1'
-                }`}
-              />
-            </button>
-          </div>
-
-          {/* Alias input - only shown when toggle is on */}
-          {useAlias && (
-            <input
-              type="text"
-              value={alias}
-              onChange={(e) => setAlias(e.target.value)}
-              placeholder="Enter your alias"
+              placeholder="Doe"
               className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-black focus:outline-none transition-colors"
+              disabled={loading}
             />
+          </div>
+
+          <div className="flex items-center gap-2 pt-2">
+            <input
+              type="checkbox"
+              id="useAlias"
+              checked={useAlias}
+              onChange={(e) => setUseAlias(e.target.checked)}
+              className="w-5 h-5 rounded border-gray-300"
+              disabled={loading}
+            />
+            <label htmlFor="useAlias" className="text-sm">
+              I prefer to use an alias/nickname
+            </label>
+          </div>
+
+          {useAlias && (
+            <div>
+              <label className="block text-sm font-medium mb-2">Alias/Nickname</label>
+              <input
+                type="text"
+                value={alias}
+                onChange={(e) => setAlias(e.target.value)}
+                placeholder="JD"
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-black focus:outline-none transition-colors"
+                disabled={loading}
+              />
+            </div>
           )}
         </div>
 
-        <Button 
-          onClick={handleNext}
-          disabled={!isValid}
-          className="w-full"
-        >
-          Continue
+        <Button onClick={handleContinue} disabled={loading}>
+          {loading ? 'Saving...' : 'Continue'}
         </Button>
       </div>
     </div>

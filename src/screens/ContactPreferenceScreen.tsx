@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { Button } from '../components/Button';
+import { useAuth } from '../contexts/AuthContext';
+import { updateProfile, markOnboardingComplete } from '../lib/profileHelpers';
 
 interface ContactPreferenceScreenProps {
   onNext: (preferences: ContactPreferences) => void;
@@ -14,6 +16,7 @@ export interface ContactPreferences {
 }
 
 export const ContactPreferenceScreen: React.FC<ContactPreferenceScreenProps> = ({ onNext, onBack }) => {
+  const { user, refreshProfile } = useAuth();
   const [enablePhone, setEnablePhone] = useState(false);
   const [enableEmail, setEnableEmail] = useState(false);
   const [enableInstagram, setEnableInstagram] = useState(false);
@@ -23,15 +26,42 @@ export const ContactPreferenceScreen: React.FC<ContactPreferenceScreenProps> = (
   const [email, setEmail] = useState('');
   const [instagram, setInstagram] = useState('');
   const [facebook, setFacebook] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleNext = () => {
+  const handleNext = async () => {
     const preferences: ContactPreferences = {};
     if (enablePhone && phone.trim()) preferences.phone = phone.trim();
     if (enableEmail && email.trim()) preferences.email = email.trim();
     if (enableInstagram && instagram.trim()) preferences.instagram = instagram.trim();
     if (enableFacebook && facebook.trim()) preferences.facebook = facebook.trim();
 
-    onNext(preferences);
+    if (Object.keys(preferences).length === 0) {
+      alert('Please provide at least one contact method');
+      return;
+    }
+
+    if (!user) return;
+
+    setLoading(true);
+    try {
+      // Save contact preferences and mark onboarding as complete
+      await updateProfile(user.id, {
+        contact_phone: preferences.phone || null,
+        contact_email: preferences.email || null,
+        contact_instagram: preferences.instagram || null,
+        contact_facebook: preferences.facebook || null,
+      });
+
+      await markOnboardingComplete(user.id);
+      await refreshProfile();
+
+      onNext(preferences);
+    } catch (error) {
+      console.error('Error saving contact preferences:', error);
+      alert('Failed to save. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const hasAtLeastOne = (enablePhone && phone.trim()) || 
@@ -57,6 +87,7 @@ export const ContactPreferenceScreen: React.FC<ContactPreferenceScreenProps> = (
       <button 
         onClick={onBack}
         className="self-start mb-4 text-gray-600 hover:text-black transition-colors"
+        disabled={loading}
       >
         ← Back
       </button>
@@ -78,6 +109,7 @@ export const ContactPreferenceScreen: React.FC<ContactPreferenceScreenProps> = (
               className={`relative w-12 h-7 rounded-full transition-colors ${
                 enablePhone ? 'bg-black' : 'bg-gray-300'
               }`}
+              disabled={loading}
             >
               <div
                 className={`absolute top-1 w-5 h-5 bg-white rounded-full transition-transform ${
@@ -93,6 +125,7 @@ export const ContactPreferenceScreen: React.FC<ContactPreferenceScreenProps> = (
               onChange={(e) => handlePhoneChange(e.target.value)}
               placeholder="(555) 123-4567"
               className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-black focus:outline-none transition-colors"
+              disabled={loading}
             />
           )}
         </div>
@@ -106,6 +139,7 @@ export const ContactPreferenceScreen: React.FC<ContactPreferenceScreenProps> = (
               className={`relative w-12 h-7 rounded-full transition-colors ${
                 enableEmail ? 'bg-black' : 'bg-gray-300'
               }`}
+              disabled={loading}
             >
               <div
                 className={`absolute top-1 w-5 h-5 bg-white rounded-full transition-transform ${
@@ -121,6 +155,7 @@ export const ContactPreferenceScreen: React.FC<ContactPreferenceScreenProps> = (
               onChange={(e) => setEmail(e.target.value)}
               placeholder="your@email.com"
               className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-black focus:outline-none transition-colors"
+              disabled={loading}
             />
           )}
         </div>
@@ -134,6 +169,7 @@ export const ContactPreferenceScreen: React.FC<ContactPreferenceScreenProps> = (
               className={`relative w-12 h-7 rounded-full transition-colors ${
                 enableInstagram ? 'bg-black' : 'bg-gray-300'
               }`}
+              disabled={loading}
             >
               <div
                 className={`absolute top-1 w-5 h-5 bg-white rounded-full transition-transform ${
@@ -149,6 +185,7 @@ export const ContactPreferenceScreen: React.FC<ContactPreferenceScreenProps> = (
               onChange={(e) => setInstagram(e.target.value)}
               placeholder="@yourusername"
               className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-black focus:outline-none transition-colors"
+              disabled={loading}
             />
           )}
         </div>
@@ -162,6 +199,7 @@ export const ContactPreferenceScreen: React.FC<ContactPreferenceScreenProps> = (
               className={`relative w-12 h-7 rounded-full transition-colors ${
                 enableFacebook ? 'bg-black' : 'bg-gray-300'
               }`}
+              disabled={loading}
             >
               <div
                 className={`absolute top-1 w-5 h-5 bg-white rounded-full transition-transform ${
@@ -177,16 +215,17 @@ export const ContactPreferenceScreen: React.FC<ContactPreferenceScreenProps> = (
               onChange={(e) => setFacebook(e.target.value)}
               placeholder="facebook.com/yourprofile"
               className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-black focus:outline-none transition-colors"
+              disabled={loading}
             />
           )}
         </div>
 
         <Button 
           onClick={handleNext}
-          disabled={!hasAtLeastOne}
+          disabled={!hasAtLeastOne || loading}
           className="w-full"
         >
-          Continue
+          {loading ? 'Saving...' : 'Continue'}
         </Button>
       </div>
     </div>

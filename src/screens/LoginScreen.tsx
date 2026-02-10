@@ -2,108 +2,48 @@ import React, { useState } from 'react';
 import { Button } from '../components/Button';
 import { supabase } from '../lib/supabase';
 
-interface SignUpScreenProps {
-  onEmailSignUp: (email: string, password: string) => void;
-  onGoogleSignUp: () => void;
+interface LoginScreenProps {
+  onLogin: () => void;
   onBack: () => void;
+  onSignUp: () => void;
 }
 
-const PRESIGNUP_STORAGE_KEY = 'roomie_presignup_data';
-
-export const SignUpScreen: React.FC<SignUpScreenProps> = ({ onEmailSignUp, onGoogleSignUp, onBack }) => {
+export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onBack, onSignUp }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const handleEmailSignUp = async (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
-    // Validation
-    if (!email || !password || !confirmPassword) {
+    if (!email || !password) {
       setError('Please fill in all fields');
-      return;
-    }
-
-    if (password !== confirmPassword) {
-      setError('Passwords do not match');
-      return;
-    }
-
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters');
       return;
     }
 
     setLoading(true);
 
     try {
-      // Get pre-signup data from localStorage
-      const preSignupDataString = localStorage.getItem(PRESIGNUP_STORAGE_KEY);
-      const preSignupData = preSignupDataString ? JSON.parse(preSignupDataString) : {};
-      
-      console.log('Pre-signup data from localStorage:', preSignupData);
-
-      // Sign up the user
-      const { data: authData, error: signUpError } = await supabase.auth.signUp({
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
-      if (signUpError) throw signUpError;
+      if (signInError) throw signInError;
 
-      if (authData.user) {
-        console.log('User created:', authData.user.id);
-
-        // Wait a moment for auth to settle
-        await new Promise(resolve => setTimeout(resolve, 500));
-
-        // Create profile with ALL data (email + pre-signup data)
-        const profileData = {
-          id: authData.user.id,
-          email: authData.user.email,
-          onboarding_completed: false,
-          onboarding_step: 'name',
-          ...preSignupData, // Include housing_status, location, etc.
-        };
-
-        console.log('Creating profile with data:', profileData);
-
-        const { data: createdProfile, error: profileError } = await supabase
-          .from('profiles')
-          .insert(profileData)
-          .select()
-          .single();
-
-        console.log('Profile creation result:', { createdProfile, profileError });
-
-        if (profileError) {
-          console.error('Error creating profile:', profileError);
-          // Try to delete the auth user if profile creation failed
-          await supabase.auth.signOut();
-          throw new Error('Failed to create profile. Please try again.');
-        }
-
-        console.log('Profile created successfully:', createdProfile);
-        
-        // Clear localStorage after successful save
-        localStorage.removeItem(PRESIGNUP_STORAGE_KEY);
-        console.log('Cleared pre-signup data from localStorage');
-        
-        // Success! Move to next screen
-        onEmailSignUp(email, password);
+      if (data.user) {
+        onLogin();
       }
     } catch (err: any) {
-      console.error('Signup error:', err);
-      setError(err.message || 'An error occurred during sign up');
+      setError(err.message || 'Invalid email or password');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleGoogleSignUp = async () => {
+  const handleGoogleLogin = async () => {
     setLoading(true);
     setError('');
 
@@ -134,10 +74,10 @@ export const SignUpScreen: React.FC<SignUpScreenProps> = ({ onEmailSignUp, onGoo
       
       <div className="flex-1 flex flex-col justify-center max-w-md mx-auto w-full">
         <h1 className="text-2xl font-semibold mb-2 text-black">
-          Create your account
+          Welcome back
         </h1>
         <p className="text-gray-600 text-sm mb-8">
-          Sign up to start finding your perfect roommate
+          Sign in to continue finding roommates
         </p>
 
         {error && (
@@ -146,7 +86,7 @@ export const SignUpScreen: React.FC<SignUpScreenProps> = ({ onEmailSignUp, onGoo
           </div>
         )}
 
-        <form onSubmit={handleEmailSignUp} className="space-y-4 mb-6">
+        <form onSubmit={handleLogin} className="space-y-4 mb-6">
           <div>
             <label className="block text-sm font-medium mb-2">Email</label>
             <input
@@ -166,20 +106,7 @@ export const SignUpScreen: React.FC<SignUpScreenProps> = ({ onEmailSignUp, onGoo
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="At least 6 characters"
-              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-black focus:outline-none transition-colors"
-              disabled={loading}
-              required
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-2">Confirm Password</label>
-            <input
-              type="password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              placeholder="Re-enter password"
+              placeholder="Enter your password"
               className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-black focus:outline-none transition-colors"
               disabled={loading}
               required
@@ -187,7 +114,7 @@ export const SignUpScreen: React.FC<SignUpScreenProps> = ({ onEmailSignUp, onGoo
           </div>
 
           <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? 'Creating account...' : 'Sign up with Email'}
+            {loading ? 'Signing in...' : 'Sign in'}
           </Button>
         </form>
 
@@ -201,7 +128,7 @@ export const SignUpScreen: React.FC<SignUpScreenProps> = ({ onEmailSignUp, onGoo
         </div>
 
         <button
-          onClick={handleGoogleSignUp}
+          onClick={handleGoogleLogin}
           disabled={loading}
           className="w-full px-6 py-3 border-2 border-gray-200 rounded-xl font-medium hover:bg-gray-50 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
         >
@@ -215,9 +142,12 @@ export const SignUpScreen: React.FC<SignUpScreenProps> = ({ onEmailSignUp, onGoo
         </button>
 
         <p className="text-center text-sm text-gray-600 mt-6">
-          Already have an account?{' '}
-          <button className="text-black font-medium hover:underline">
-            Sign in
+          Don't have an account?{' '}
+          <button 
+            onClick={onSignUp}
+            className="text-black font-medium hover:underline"
+          >
+            Sign up
           </button>
         </p>
       </div>

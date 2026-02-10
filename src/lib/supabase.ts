@@ -45,6 +45,8 @@ export type Profile = {
   background?: string;
   profile_photo_url?: string;
   avatar_id?: string;
+  onboarding_completed?: boolean;
+  onboarding_step?: string;
   created_at: string;
   updated_at: string;
 };

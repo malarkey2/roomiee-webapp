@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { Button } from '../components/Button';
+import { useAuth } from '../contexts/AuthContext';
+import { updateProfile } from '../lib/profileHelpers';
 
 interface BirthdayScreenProps {
   onNext: (birthday: string) => void;
@@ -7,33 +9,62 @@ interface BirthdayScreenProps {
 }
 
 export const BirthdayScreen: React.FC<BirthdayScreenProps> = ({ onNext, onBack }) => {
-  const [month, setMonth] = useState('');
-  const [day, setDay] = useState('');
-  const [year, setYear] = useState('');
+  const { user, refreshProfile } = useAuth();
+  const [birthday, setBirthday] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const months = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December'
-  ];
-
-  const days = Array.from({ length: 31 }, (_, i) => i + 1);
-  const currentYear = new Date().getFullYear();
-  const years = Array.from({ length: 100 }, (_, i) => currentYear - 18 - i);
-
-  const handleNext = () => {
-    if (month && day && year) {
-      const birthday = `${year}-${String(months.indexOf(month) + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-      onNext(birthday);
+  const calculateAge = (birthDate: string) => {
+    const today = new Date();
+    const birth = new Date(birthDate);
+    let age = today.getFullYear() - birth.getFullYear();
+    const monthDiff = today.getMonth() - birth.getMonth();
+    
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+      age--;
     }
+    
+    return age;
   };
 
-  const isValid = month && day && year;
+  const handleContinue = async () => {
+    if (!birthday) {
+      alert('Please enter your birthday');
+      return;
+    }
+
+    const age = calculateAge(birthday);
+    
+    if (age < 18) {
+      alert('You must be at least 18 years old to use this app');
+      return;
+    }
+
+    if (!user) return;
+
+    setLoading(true);
+    try {
+      await updateProfile(user.id, {
+        birthday,
+        age,
+        onboarding_step: 'gender',
+      });
+
+      await refreshProfile();
+      onNext(birthday);
+    } catch (error) {
+      console.error('Error saving birthday:', error);
+      alert('Failed to save. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-white p-6 flex flex-col">
       <button 
         onClick={onBack}
         className="self-start mb-4 text-gray-600 hover:text-black transition-colors"
+        disabled={loading}
       >
         ← Back
       </button>
@@ -43,50 +74,27 @@ export const BirthdayScreen: React.FC<BirthdayScreenProps> = ({ onNext, onBack }
           When's your birthday?
         </h1>
         <p className="text-gray-600 text-sm mb-8">
-          Don't worry, we won't gate crash your party. We simply require your age. Your birthday isn't visible on your profile
+          You must be 18 or older to use Roomie
         </p>
 
-        <div className="flex gap-3 mb-8">
-          <select
-            value={month}
-            onChange={(e) => setMonth(e.target.value)}
-            className="flex-1 px-4 py-4 border-2 border-gray-200 rounded-xl focus:border-black focus:outline-none transition-colors bg-white appearance-none"
-          >
-            <option value="">Month</option>
-            {months.map((m) => (
-              <option key={m} value={m}>{m}</option>
-            ))}
-          </select>
-
-          <select
-            value={day}
-            onChange={(e) => setDay(e.target.value)}
-            className="w-24 px-4 py-4 border-2 border-gray-200 rounded-xl focus:border-black focus:outline-none transition-colors bg-white appearance-none"
-          >
-            <option value="">Day</option>
-            {days.map((d) => (
-              <option key={d} value={d}>{d}</option>
-            ))}
-          </select>
-
-          <select
-            value={year}
-            onChange={(e) => setYear(e.target.value)}
-            className="w-28 px-4 py-4 border-2 border-gray-200 rounded-xl focus:border-black focus:outline-none transition-colors bg-white appearance-none"
-          >
-            <option value="">Year</option>
-            {years.map((y) => (
-              <option key={y} value={y}>{y}</option>
-            ))}
-          </select>
+        <div className="mb-8">
+          <input
+            type="date"
+            value={birthday}
+            onChange={(e) => setBirthday(e.target.value)}
+            max={new Date(new Date().setFullYear(new Date().getFullYear() - 18)).toISOString().split('T')[0]}
+            className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-black focus:outline-none transition-colors text-lg"
+            disabled={loading}
+          />
+          {birthday && (
+            <p className="text-sm text-gray-600 mt-2">
+              Age: {calculateAge(birthday)} years old
+            </p>
+          )}
         </div>
 
-        <Button 
-          onClick={handleNext}
-          disabled={!isValid}
-          className="w-full"
-        >
-          Continue
+        <Button onClick={handleContinue} disabled={!birthday || loading}>
+          {loading ? 'Saving...' : 'Continue'}
         </Button>
       </div>
     </div>

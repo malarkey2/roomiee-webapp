@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { Button } from '../components/Button';
+import { useAuth } from '../contexts/AuthContext';
+import { updateProfile } from '../lib/profileHelpers';
 
 interface GenderScreenProps {
   onNext: (gender: string) => void;
@@ -7,18 +9,50 @@ interface GenderScreenProps {
 }
 
 export const GenderScreen: React.FC<GenderScreenProps> = ({ onNext, onBack }) => {
-  const [selectedGender, setSelectedGender] = useState<string | null>(null);
+  const { user, profile, refreshProfile } = useAuth();
+  const [selected, setSelected] = useState<string | null>(null);
+  const [customGender, setCustomGender] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const genders = [
-    { value: 'woman', label: 'Woman', emoji: '👩' },
-    { value: 'man', label: 'Man', emoji: '👨' },
-    { value: 'non-binary', label: 'Non-binary', emoji: '🧑' },
-    { value: 'prefer-not-to-say', label: 'Prefer not to say', emoji: '🤐' },
+  const genderOptions = [
+    { value: 'Man', emoji: '👨', label: 'Man' },
+    { value: 'Woman', emoji: '👩', label: 'Woman' },
+    { value: 'Non-binary', emoji: '🧑', label: 'Non-binary' },
+    { value: 'Custom', emoji: '✏️', label: 'Prefer to self-describe' },
   ];
 
-  const handleNext = () => {
-    if (selectedGender) {
-      onNext(selectedGender);
+  const handleContinue = async () => {
+    let genderValue = selected;
+    
+    if (selected === 'Custom') {
+      if (!customGender.trim()) {
+        alert('Please enter your gender');
+        return;
+      }
+      genderValue = customGender.trim();
+    }
+
+    if (!genderValue || !user) return;
+
+    setLoading(true);
+    try {
+      // Determine next step based on housing status
+      const nextStep = profile?.housing_status === 'housed' 
+        ? 'contactPreference' 
+        : 'desiredHouseType';
+
+      await updateProfile(user.id, {
+        gender: genderValue,
+        onboarding_step: nextStep,
+      });
+
+      await refreshProfile();
+      onNext(genderValue);
+    } catch (error) {
+      console.error('Error saving gender:', error);
+      alert('Failed to save. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -27,6 +61,7 @@ export const GenderScreen: React.FC<GenderScreenProps> = ({ onNext, onBack }) =>
       <button 
         onClick={onBack}
         className="self-start mb-4 text-gray-600 hover:text-black transition-colors"
+        disabled={loading}
       >
         ← Back
       </button>
@@ -36,45 +71,45 @@ export const GenderScreen: React.FC<GenderScreenProps> = ({ onNext, onBack }) =>
           What's your gender?
         </h1>
         <p className="text-gray-600 text-sm mb-8">
-          Tell us what you most closely identify with. Our platform welcomes all gender identities
+          This helps us show you relevant matches
         </p>
 
         <div className="space-y-3 mb-8">
-          {genders.map((gender) => (
+          {genderOptions.map((option) => (
             <button
-              key={gender.value}
-              onClick={() => setSelectedGender(gender.value)}
-              className={`w-full px-6 py-5 border-2 rounded-xl transition-all flex items-center justify-between ${
-                selectedGender === gender.value
-                  ? 'border-black bg-gray-50'
+              key={option.value}
+              onClick={() => setSelected(option.value)}
+              className={`w-full p-4 border-2 rounded-2xl text-left transition-all flex items-center gap-4 ${
+                selected === option.value
+                  ? 'border-black bg-black text-white'
                   : 'border-gray-200 hover:border-gray-300'
               }`}
+              disabled={loading}
             >
-              <div className="flex items-center gap-3">
-                <span className="text-2xl">{gender.emoji}</span>
-                <span className="font-medium">{gender.label}</span>
-              </div>
-              <div className={`w-5 h-5 rounded-full border-2 transition-all ${
-                selectedGender === gender.value
-                  ? 'border-black bg-black'
-                  : 'border-gray-300'
-              }`}>
-                {selectedGender === gender.value && (
-                  <div className="w-full h-full flex items-center justify-center">
-                    <div className="w-2 h-2 bg-white rounded-full" />
-                  </div>
-                )}
-              </div>
+              <span className="text-3xl">{option.emoji}</span>
+              <span className="font-medium">{option.label}</span>
             </button>
           ))}
         </div>
 
+        {selected === 'Custom' && (
+          <div className="mb-8">
+            <input
+              type="text"
+              value={customGender}
+              onChange={(e) => setCustomGender(e.target.value)}
+              placeholder="Enter your gender"
+              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-black focus:outline-none transition-colors"
+              disabled={loading}
+            />
+          </div>
+        )}
+
         <Button 
-          onClick={handleNext}
-          disabled={!selectedGender}
-          className="w-full"
+          onClick={handleContinue} 
+          disabled={!selected || (selected === 'Custom' && !customGender.trim()) || loading}
         >
-          Continue
+          {loading ? 'Saving...' : 'Continue'}
         </Button>
       </div>
     </div>

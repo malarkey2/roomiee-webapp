@@ -1,10 +1,13 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useAuth } from './contexts/AuthContext';
 import { WelcomeScreen } from './screens/WelcomeScreen';
+import { LoginScreen } from './screens/LoginScreen';
 import { UserTypeScreen } from './screens/UserTypeScreen';
 import { HousingStatusScreen } from './screens/HousingStatusScreen';
 import { LocationScreen } from './screens/LocationScreen';
 import { HousedLocationScreen } from './screens/HousedLocationScreen';
 import { HouseTypeScreen } from './screens/HouseTypeScreen';
+import { RentAndOccupantsScreen } from './screens/RentAndOccupantsScreen';
 import { RoommatesNeededScreen } from './screens/RoommatesNeededScreen';
 import { SignUpScreen } from './screens/SignUpScreen';
 import { NameScreen } from './screens/NameScreen';
@@ -19,27 +22,130 @@ import { ContactPreferenceScreen } from './screens/ContactPreferenceScreen';
 import { SwipeScreen } from './screens/SwipeScreen';
 import { ProfileScreen } from './screens/ProfileScreen';
 import { NotificationsScreen } from './screens/NotificationsScreen';
+import { updateProfile } from './lib/profileHelpers';
 
-type Screen = 'welcome' | 'userType' | 'housingStatus' | 'location' | 'housedLocation' | 'houseType' | 'roommatesNeeded' | 'signUp' | 'name' | 'profilePhoto' | 'avatar' | 'birthday' | 'gender' | 'desiredHouseType' | 'budget' | 'timeline' | 'contactPreference' | 'swipe' | 'profile' | 'notifications';
+type Screen = 'welcome' | 'login' | 'userType' | 'housingStatus' | 'location' | 'housedLocation' | 'houseType' | 'rentAndOccupants' | 'roommatesNeeded' | 'signUp' | 'name' | 'profilePhoto' | 'avatar' | 'birthday' | 'gender' | 'desiredHouseType' | 'budget' | 'timeline' | 'contactPreference' | 'swipe' | 'profile' | 'notifications';
+
+const PRESIGNUP_STORAGE_KEY = 'roomie_presignup_data';
 
 function App() {
+  const { user, profile, loading, refreshProfile } = useAuth();
   const [currentScreen, setCurrentScreen] = useState<Screen>('welcome');
   const [housingStatus, setHousingStatus] = useState<'have-place' | 'looking' | null>(null);
-  const [hasPhoto, setHasPhoto] = useState(false);
   const [hasSeenOnboarding, setHasSeenOnboarding] = useState(false);
+  const [preSignupDataSaved, setPreSignupDataSaved] = useState(false);
+
+  // Load pre-signup data from localStorage
+  const loadPreSignupData = () => {
+    const stored = localStorage.getItem(PRESIGNUP_STORAGE_KEY);
+    return stored ? JSON.parse(stored) : {};
+  };
+
+  // Save pre-signup data to localStorage
+  const savePreSignupData = (data: any) => {
+    const existing = loadPreSignupData();
+    const updated = { ...existing, ...data };
+    localStorage.setItem(PRESIGNUP_STORAGE_KEY, JSON.stringify(updated));
+    console.log('Saved to localStorage:', updated);
+  };
+
+  // Clear pre-signup data
+  const clearPreSignupData = () => {
+    localStorage.removeItem(PRESIGNUP_STORAGE_KEY);
+  };
+
+  // STAGE 1 → STAGE 2: After signup, save pre-signup data to database
+  useEffect(() => {
+    if (user && profile && !preSignupDataSaved) {
+      const preSignupData = loadPreSignupData();
+      console.log('User logged in, checking pre-signup data:', preSignupData);
+      
+      if (Object.keys(preSignupData).length > 0) {
+        console.log('Found pre-signup data, saving to database...');
+        const saveToDatabase = async () => {
+          try {
+            await updateProfile(user.id, preSignupData);
+            console.log('Pre-signup data saved to database!');
+            await refreshProfile();
+            clearPreSignupData();
+            setPreSignupDataSaved(true);
+          } catch (error) {
+            console.error('Error saving pre-signup data:', error);
+          }
+        };
+        saveToDatabase();
+      }
+    }
+  }, [user, profile]);
+
+  // Resume onboarding if user is logged in
+  useEffect(() => {
+    if (loading) return;
+
+    if (user && profile) {
+      if (profile.onboarding_completed) {
+        setCurrentScreen('swipe');
+        setHasSeenOnboarding(true);
+      } else {
+        const step = determineOnboardingStep(profile);
+        setCurrentScreen(step);
+        
+        if (profile.housing_status) {
+          setHousingStatus(profile.housing_status === 'housed' ? 'have-place' : 'looking');
+        }
+      }
+    }
+  }, [user, profile, loading]);
+
+  const determineOnboardingStep = (profile: any): Screen => {
+    if (!profile.first_name) return 'name';
+    if (!profile.profile_photo_url && !profile.avatar_id) return 'profilePhoto';
+    if (!profile.birthday) return 'birthday';
+    if (!profile.gender) return 'gender';
+    
+    if (profile.housing_status === 'looking') {
+      if (!profile.budget_min || !profile.budget_max) return 'budget';
+      if (!profile.move_in_date) return 'timeline';
+    }
+    
+    if (!profile.contact_phone && !profile.contact_email && !profile.contact_instagram) {
+      return 'contactPreference';
+    }
+    
+    return 'swipe';
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-gray-200 border-t-black rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>
       {currentScreen === 'welcome' && (
         <WelcomeScreen
           onNewUser={() => setCurrentScreen('userType')}
-          onReturningUser={() => console.log('Login flow')}
+          onReturningUser={() => setCurrentScreen('login')}
         />
       )}
+      {currentScreen === 'login' && (
+        <LoginScreen
+          onLogin={() => {}}
+          onBack={() => setCurrentScreen('welcome')}
+          onSignUp={() => setCurrentScreen('userType')}
+        />
+      )}
+      {/* STAGE 1: PRE-SIGNUP - Save to localStorage */}
       {currentScreen === 'userType' && (
         <UserTypeScreen
           onSelect={(type) => {
-            console.log('User type:', type);
+            savePreSignupData({ user_type: type });
             if (type === 'city') {
               setCurrentScreen('housingStatus');
             }
@@ -50,8 +156,11 @@ function App() {
       {currentScreen === 'housingStatus' && (
         <HousingStatusScreen
           onSelect={(status) => {
-            console.log('Housing status:', status);
             setHousingStatus(status);
+            savePreSignupData({ 
+              housing_status: status === 'have-place' ? 'housed' : 'looking' 
+            });
+            
             if (status === 'have-place') {
               setCurrentScreen('housedLocation');
             } else {
@@ -64,7 +173,7 @@ function App() {
       {currentScreen === 'location' && (
         <LocationScreen
           onNext={(location) => {
-            console.log('Looking in:', location);
+            savePreSignupData({ location });
             setCurrentScreen('signUp');
           }}
           onBack={() => setCurrentScreen('housingStatus')}
@@ -73,7 +182,7 @@ function App() {
       {currentScreen === 'housedLocation' && (
         <HousedLocationScreen
           onNext={(address) => {
-            console.log('Housed at:', address);
+            savePreSignupData({ full_address: address });
             setCurrentScreen('houseType');
           }}
           onBack={() => setCurrentScreen('housingStatus')}
@@ -82,31 +191,39 @@ function App() {
       {currentScreen === 'houseType' && (
         <HouseTypeScreen
           onSelect={(houseType) => {
-            console.log('House type:', houseType);
-            setCurrentScreen('roommatesNeeded');
+            savePreSignupData({ house_type: houseType });
+            setCurrentScreen('rentAndOccupants');
           }}
           onBack={() => setCurrentScreen('housedLocation')}
+        />
+      )}
+      {currentScreen === 'rentAndOccupants' && (
+        <RentAndOccupantsScreen
+          onNext={(rent, currentOccupants, totalRooms) => {
+            savePreSignupData({ 
+              budget_max: rent,
+              current_occupants: currentOccupants,
+              total_rooms: totalRooms,
+            });
+            setCurrentScreen('roommatesNeeded');
+          }}
+          onBack={() => setCurrentScreen('houseType')}
         />
       )}
       {currentScreen === 'roommatesNeeded' && (
         <RoommatesNeededScreen
           onNext={(numberOfRoommates) => {
-            console.log('Roommates needed:', numberOfRoommates);
+            savePreSignupData({ roommates_needed: numberOfRoommates });
             setCurrentScreen('signUp');
           }}
-          onBack={() => setCurrentScreen('houseType')}
+          onBack={() => setCurrentScreen('rentAndOccupants')}
         />
       )}
+      {/* STAGE 2: POST-SIGNUP ONBOARDING - Save to database after each screen */}
       {currentScreen === 'signUp' && (
         <SignUpScreen
-          onEmailSignUp={(email, password) => {
-            console.log('Email signup:', email);
-            setCurrentScreen('name');
-          }}
-          onGoogleSignUp={() => {
-            console.log('Google signup');
-            setCurrentScreen('name');
-          }}
+          onEmailSignUp={() => setCurrentScreen('name')}
+          onGoogleSignUp={() => setCurrentScreen('name')}
           onBack={() => {
             if (housingStatus === 'have-place') {
               setCurrentScreen('roommatesNeeded');
@@ -118,47 +235,32 @@ function App() {
       )}
       {currentScreen === 'name' && (
         <NameScreen
-          onNext={(firstName, lastName, useAlias, alias) => {
-            console.log('Name:', firstName, lastName, 'Alias:', useAlias, alias);
-            setCurrentScreen('profilePhoto');
-          }}
+          onNext={() => setCurrentScreen('profilePhoto')}
           onBack={() => setCurrentScreen('signUp')}
         />
       )}
       {currentScreen === 'profilePhoto' && (
         <ProfilePhotoScreen
-          onContinue={(photoUrl) => {
-            console.log('Photo:', photoUrl);
-            setHasPhoto(!!photoUrl);
-            setCurrentScreen('birthday');
-          }}
+          onContinue={() => setCurrentScreen('birthday')}
           onChooseAvatar={() => setCurrentScreen('avatar')}
           onBack={() => setCurrentScreen('name')}
         />
       )}
       {currentScreen === 'avatar' && (
         <AvatarSelectionScreen
-          onContinue={(avatarId) => {
-            console.log('Avatar:', avatarId);
-            setHasPhoto(true);
-            setCurrentScreen('birthday');
-          }}
+          onContinue={() => setCurrentScreen('birthday')}
           onBack={() => setCurrentScreen('profilePhoto')}
         />
       )}
       {currentScreen === 'birthday' && (
         <BirthdayScreen
-          onNext={(birthday) => {
-            console.log('Birthday:', birthday);
-            setCurrentScreen('gender');
-          }}
+          onNext={() => setCurrentScreen('gender')}
           onBack={() => setCurrentScreen('profilePhoto')}
         />
       )}
       {currentScreen === 'gender' && (
         <GenderScreen
-          onNext={(gender) => {
-            console.log('Gender:', gender);
+          onNext={() => {
             if (housingStatus === 'have-place') {
               setCurrentScreen('contactPreference');
             } else {
@@ -170,37 +272,25 @@ function App() {
       )}
       {currentScreen === 'desiredHouseType' && (
         <DesiredHouseTypeScreen
-          onNext={(houseTypes) => {
-            console.log('Desired house types:', houseTypes);
-            setCurrentScreen('budget');
-          }}
+          onNext={() => setCurrentScreen('budget')}
           onBack={() => setCurrentScreen('gender')}
         />
       )}
       {currentScreen === 'budget' && (
         <BudgetScreen
-          onNext={(minBudget, maxBudget) => {
-            console.log('Budget:', minBudget, maxBudget);
-            setCurrentScreen('timeline');
-          }}
+          onNext={() => setCurrentScreen('timeline')}
           onBack={() => setCurrentScreen('desiredHouseType')}
         />
       )}
       {currentScreen === 'timeline' && (
         <TimelineScreen
-          onNext={(startDate, duration) => {
-            console.log('Timeline:', startDate, duration);
-            setCurrentScreen('contactPreference');
-          }}
+          onNext={() => setCurrentScreen('contactPreference')}
           onBack={() => setCurrentScreen('budget')}
         />
       )}
       {currentScreen === 'contactPreference' && (
         <ContactPreferenceScreen
-          onNext={(preferences) => {
-            console.log('Contact preferences:', preferences);
-            setCurrentScreen('swipe');
-          }}
+          onNext={() => setCurrentScreen('swipe')}
           onBack={() => {
             if (housingStatus === 'have-place') {
               setCurrentScreen('gender');
@@ -210,6 +300,7 @@ function App() {
           }}
         />
       )}
+      {/* STAGE 3: POST-ONBOARDING - All edits save immediately via ProfileScreen */}
       {currentScreen === 'swipe' && (
         <SwipeScreen
           housingStatus={housingStatus}

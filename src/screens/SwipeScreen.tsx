@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { EditPreferencesScreen } from './EditPreferencesScreen';
+import { supabase } from '../lib/supabase';
 
 interface Profile {
   id: string;
@@ -23,93 +24,6 @@ interface Profile {
   photo?: string;
 }
 
-// Fake profiles for testing
-const FAKE_PROFILES: Profile[] = [
-  {
-    id: '1',
-    name: 'Sarah Johnson',
-    age: 24,
-    gender: 'Woman',
-    location: 'Durham, NC',
-    housingStatus: 'housed',
-    houseType: 'Apartment',
-    budget: 1200,
-    totalRooms: 3,
-    currentOccupants: 2,
-    moveInDate: '2026-04-01',
-    diet: 'Vegetarian',
-    pets: 'Have pets',
-    sleepSchedule: 'Night owl',
-    smoking: 'Non-smoker',
-    background: "I'm a software developer originally from Chapel Hill. I went to UNC for undergrad and just started working at a tech startup in Durham. Looking for a chill roommate who respects quiet time but is up for occasional hangouts!",
-  },
-  {
-    id: '2',
-    name: 'Marcus Williams',
-    age: 27,
-    gender: 'Man',
-    location: 'Durham, NC',
-    housingStatus: 'looking',
-    budget: 900,
-    moveInDate: '2026-03-15',
-    diet: 'No preference',
-    pets: 'Allergic to pets',
-    sleepSchedule: 'Early bird',
-    smoking: 'Non-smoker',
-    religion: 'Christian',
-    background: "Recent grad from Duke working in finance. Love cooking, hiking, and playing guitar. Looking for someone clean, respectful, and easy to live with. I'm pretty laid back but appreciate a tidy space.",
-  },
-  {
-    id: '3',
-    name: 'Emily Chen',
-    age: 22,
-    gender: 'Woman',
-    location: 'Durham, NC',
-    housingStatus: 'housed',
-    houseType: 'Townhouse',
-    budget: 1400,
-    totalRooms: 4,
-    currentOccupants: 3,
-    moveInDate: '2026-05-01',
-    diet: 'Vegan',
-    pets: 'Open to pets',
-    sleepSchedule: 'Flexible',
-    smoking: 'Non-smoker',
-    background: "PhD student at Duke studying neuroscience. I'm quiet during the week but love hosting small dinner parties on weekends. Looking for someone who's respectful, clean, and enjoys good conversation.",
-  },
-  {
-    id: '4',
-    name: 'Alex Rivera',
-    age: 25,
-    gender: 'Non-binary',
-    location: 'Durham, NC',
-    housingStatus: 'looking',
-    budget: 1100,
-    moveInDate: '2026-04-15',
-    diet: 'Pescatarian',
-    pets: 'No pets',
-    sleepSchedule: 'Night owl',
-    smoking: 'Social smoker',
-    religion: 'Agnostic',
-    background: "Artist and barista working in downtown Durham. I'm creative, messy in my own space but respectful of shared areas. Love music, art, and late-night conversations. 420 friendly.",
-  },
-  {
-    id: '5',
-    name: 'Jordan Lee',
-    age: 26,
-    gender: 'Man',
-    location: 'Durham, NC',
-    housingStatus: 'looking',
-    budget: 800,
-    moveInDate: '2026-03-20',
-    diet: 'No preference',
-    pets: 'Have pets',
-    sleepSchedule: 'Early bird',
-    smoking: 'Non-smoker',
-    background: "Nurse working rotating shifts at Duke Hospital. I have a dog named Max who's super friendly. Looking for someone who loves animals and doesn't mind my occasionally weird schedule!",
-  },
-];
-
 interface SwipeScreenProps {
   housingStatus: 'have-place' | 'looking' | null;
   onNavigateToProfile?: () => void;
@@ -125,25 +39,71 @@ export const SwipeScreen: React.FC<SwipeScreenProps> = ({
   hasSeenOnboarding = false,
   onOnboardingComplete
 }) => {
+  const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [loading, setLoading] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showEditPreferences, setShowEditPreferences] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(!hasSeenOnboarding);
   const [onboardingStep, setOnboardingStep] = useState(0);
   const [highlightRect, setHighlightRect] = useState<DOMRect | null>(null);
 
+  // Fetch profiles from database
+  useEffect(() => {
+    const fetchProfiles = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('onboarding_completed', true);
+
+        if (error) throw error;
+
+        // Map database profiles to our Profile interface
+        const mappedProfiles: Profile[] = (data || []).map((p: any) => ({
+          id: p.id,
+          name: p.display_name || `${p.first_name} ${p.last_name}` || 'Anonymous',
+          age: p.age || 0,
+          gender: p.gender || 'Not specified',
+          location: p.location || p.full_address || 'Unknown',
+          housingStatus: p.housing_status === 'housed' ? 'housed' : 'looking',
+          houseType: p.house_type,
+          budget: p.budget_max || p.budget_min || 0,
+          totalRooms: p.total_rooms,
+          currentOccupants: p.current_occupants,
+          moveInDate: p.move_in_date,
+          diet: p.diet,
+          religion: p.religion,
+          pets: p.pets,
+          smoking: p.smoking,
+          sleepSchedule: p.sleep_schedule,
+          background: p.background || 'No bio available',
+          photo: p.profile_photo_url || p.avatar_id,
+        }));
+
+        setProfiles(mappedProfiles);
+        setLoading(false);
+      } catch (error) {
+        console.error('Error fetching profiles:', error);
+        setLoading(false);
+      }
+    };
+
+    fetchProfiles();
+  }, []);
+
   // Filter profiles based on user's housing status
   const filteredProfiles = useMemo(() => {
     if (housingStatus === 'have-place') {
-      return FAKE_PROFILES.filter(profile => profile.housingStatus === 'looking');
+      return profiles.filter(profile => profile.housingStatus === 'looking');
     } else {
-      return FAKE_PROFILES;
+      return profiles;
     }
-  }, [housingStatus]);
+  }, [housingStatus, profiles]);
 
   const currentProfile = filteredProfiles[currentIndex];
 
   const handleSwipe = (direction: 'left' | 'right') => {
-    console.log(`Swiped ${direction} on ${currentProfile.name}`);
+    console.log(`Swiped ${direction} on ${currentProfile?.name}`);
     setCurrentIndex(currentIndex + 1);
   };
 
@@ -182,16 +142,22 @@ export const SwipeScreen: React.FC<SwipeScreenProps> = ({
 
   const currentOnboardingStep = onboardingSteps[onboardingStep];
 
-  // Update highlight position when step changes
+  // Update highlight position when step changes - FIXED DEPENDENCY
   useEffect(() => {
-    if (showOnboarding && currentOnboardingStep) {
-      const element = document.getElementById(currentOnboardingStep.target);
-      if (element) {
-        const rect = element.getBoundingClientRect();
-        setHighlightRect(rect);
-      }
+    if (showOnboarding && currentOnboardingStep?.target) {
+      const updateHighlight = () => {
+        const element = document.getElementById(currentOnboardingStep.target);
+        if (element) {
+          const rect = element.getBoundingClientRect();
+          setHighlightRect(rect);
+        }
+      };
+      
+      // Use timeout to ensure element is rendered
+      const timer = setTimeout(updateHighlight, 100);
+      return () => clearTimeout(timer);
     }
-  }, [onboardingStep, showOnboarding, currentOnboardingStep]);
+  }, [onboardingStep, showOnboarding, currentOnboardingStep?.target]); // FIXED: Only depend on target string
 
   const handleNextOnboarding = () => {
     if (onboardingStep < onboardingSteps.length - 1) {
@@ -210,6 +176,17 @@ export const SwipeScreen: React.FC<SwipeScreenProps> = ({
       onOnboardingComplete();
     }
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-gray-200 border-t-black rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading profiles...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!currentProfile) {
     return (
@@ -391,7 +368,7 @@ export const SwipeScreen: React.FC<SwipeScreenProps> = ({
           </div>
         </div>
 
-        {/* Bottom Navigation - Fixed (Only Profile and Notifications) */}
+        {/* Bottom Navigation */}
         <div className="flex-shrink-0 border-t border-gray-200 p-4 bg-white">
           <div className="max-w-md mx-auto flex justify-around">
             <button 
@@ -409,10 +386,9 @@ export const SwipeScreen: React.FC<SwipeScreenProps> = ({
           </div>
         </div>
 
-        {/* Onboarding Overlay with Spotlight */}
+        {/* Onboarding Overlay */}
         {showOnboarding && highlightRect && (
           <>
-            {/* SVG mask for spotlight effect */}
             <svg className="fixed inset-0 w-full h-full pointer-events-none z-40">
               <defs>
                 <mask id="spotlight-mask">
@@ -437,7 +413,6 @@ export const SwipeScreen: React.FC<SwipeScreenProps> = ({
               />
             </svg>
 
-            {/* Highlight border */}
             <div
               className="fixed border-4 border-white rounded-2xl pointer-events-none z-40 transition-all duration-300"
               style={{
@@ -448,7 +423,6 @@ export const SwipeScreen: React.FC<SwipeScreenProps> = ({
               }}
             />
             
-            {/* Onboarding tooltip - Positioned on the left */}
             <div className="fixed inset-0 z-50 flex items-center justify-start p-6 pointer-events-none">
               <div className="bg-white rounded-2xl p-6 max-w-xs w-full pointer-events-auto shadow-2xl ml-6">
                 <div className="mb-4">
@@ -459,7 +433,6 @@ export const SwipeScreen: React.FC<SwipeScreenProps> = ({
                   <p className="text-sm text-gray-700">{currentOnboardingStep.description}</p>
                 </div>
                 
-                {/* Show edit button on badges step */}
                 {currentOnboardingStep.showEditButton && (
                   <button
                     onClick={handleEditPreferences}
@@ -489,7 +462,6 @@ export const SwipeScreen: React.FC<SwipeScreenProps> = ({
         )}
       </div>
 
-      {/* Edit Preferences Screen Overlay */}
       {showEditPreferences && (
         <div className="fixed inset-0 bg-white z-50">
           <EditPreferencesScreen
